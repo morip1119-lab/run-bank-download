@@ -38,16 +38,9 @@ const DEBUG_DIR = "data";
 // ── 日付範囲計算 ─────────────────────────────────────────────────────
 
 function getPrevMonthRange() {
-  // SUMISHIN_TARGET_MONTH=YYYY-MM で任意の月を指定可能（省略時は前月）
-  const override = process.env.SUMISHIN_TARGET_MONTH?.trim();
-  let start;
-  if (override && /^\d{4}-\d{2}$/.test(override)) {
-    start = DateTime.fromFormat(override, "yyyy-MM", { zone: TZ }).startOf("month");
-    console.log(`[sumishin] 対象月を環境変数で上書き: ${override}`);
-  } else {
-    start = DateTime.now().setZone(TZ).minus({ months: 1 }).startOf("month");
-  }
-  const end = start.endOf("month");
+  const now = DateTime.now().setZone(TZ);
+  const start = now.minus({ months: 1 }).startOf("month");
+  const end = now.minus({ months: 1 }).endOf("month");
   return {
     from: start,
     to: end,
@@ -372,25 +365,22 @@ const TARGET_ACCOUNTS = [
 // ── 前の月へ移動 ──────────────────────────────────────────────────
 // 口座選択後ページはデフォルトで当月を表示する。前月分が必要なので1回クリックする
 
-// 「前の月」ボタンを clicks 回クリックして指定月へ移動する
-async function navigateToPrevMonth(page, clicks = 1) {
-  for (let i = 0; i < clicks; i++) {
-    const btn = page.locator('a:has-text("前の月"), button:has-text("前の月")').first();
-    await btn.waitFor({ state: "attached", timeout: 8000 }).catch(() => {});
-    if ((await btn.count()) === 0) {
-      console.log("[sumishin] 前の月ボタンが見つかりません（続行）");
-      return;
-    }
-    console.log(`[sumishin] 前の月クリック (${i + 1}/${clicks})`);
-    await btn.click({ force: true });
-    await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
-    await page.waitForTimeout(1000);
+async function navigateToPrevMonth(page) {
+  const btn = page.locator('a:has-text("前の月"), button:has-text("前の月")').first();
+  await btn.waitFor({ state: "attached", timeout: 8000 }).catch(() => {});
+  if ((await btn.count()) === 0) {
+    console.log("[sumishin] 前の月ボタンが見つかりません（続行）");
+    return;
   }
+  console.log("[sumishin] 前の月クリック");
+  await btn.click({ force: true });
+  await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(1000);
   const info = await page.evaluate(() => {
     const trigger = document.querySelector(".ui-selectmenu-text, .ui-selectmenu-button span");
     return { account: trigger?.textContent?.trim() ?? "?" };
   }).catch(() => ({ account: "?" }));
-  console.log(`[sumishin] 月移動完了 (口座=${info.account})`);
+  console.log(`[sumishin] 前月へ移動完了 (口座=${info.account})`);
 }
 
 // ── 入出金明細ページへ移動 ────────────────────────────────────────
@@ -845,10 +835,6 @@ async function main() {
   console.log(`表示モード: ${HEADLESS ? "非表示（headless）" : "表示あり"}`);
   console.log("━".repeat(50));
 
-  // 今月から対象月まで「前の月」を何回クリックするか計算
-  const now = DateTime.now().setZone(TZ).startOf("month");
-  const monthClicks = Math.round(now.diff(from.startOf("month"), "months").months);
-
   let context = await launchBrowser();
   let page = await context.newPage();
   const results = { success: [], failed: [] };
@@ -860,7 +846,7 @@ async function main() {
     page = await context.newPage();
     await login(page);
     await goToMeisai(page);
-    await navigateToPrevMonth(page, monthClicks);
+    await navigateToPrevMonth(page);
     console.log("[sumishin] 再ログイン完了");
   };
 
@@ -871,8 +857,8 @@ async function main() {
     // ── 入出金明細ページへ
     await goToMeisai(page);
 
-    // ── 対象月へ移動（今月から何か月前か自動計算）
-    await navigateToPrevMonth(page, monthClicks);
+    // ── 前月へ移動（1回だけ。各口座の selectAccount 後はこのセッション月が保持される）
+    await navigateToPrevMonth(page);
 
     // ── 対象口座（固定リスト）
     const accounts = TARGET_ACCOUNTS;
