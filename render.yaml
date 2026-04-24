@@ -1,0 +1,28 @@
+# Render.com 用の例（Blueprint）。
+# ダッシュボードから「New」→「Blueprint」でこのファイルを指定するか、
+# 手動で Web Service + Persistent Disk を作成して同等の設定にする。
+#
+# デプロイ後: 環境変数と Secret Files（client_secret.json / token.json）を UI で設定。
+# Webhook URL: https://<サービス名>.onrender.com/callback
+
+services:
+  - type: web
+    name: line-secretary-calendar
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: SQLITE_PATH
+        value: /data/app.db
+      - key: LINE_CHANNEL_SECRET
+        sync: false
+      - key: LINE_CHANNEL_ACCESS_TOKEN
+        sync: false
+      - key: ALLOWED_LINE_USER_ID
+        sync: false

@@ -1,0 +1,9 @@
+# gcloud builds submit 用（.dockerignore とほぼ同じ）
+.git
+.env
+node_modules
+data
+token.json
+client_secret.json
+*.log
+.DS_Store

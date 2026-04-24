@@ -1,0 +1,33 @@
+【PCオフでも使う＝クラウド上で常時起動】
+
+■ 考え方
+  - LINE の Webhook は「HTTPS の公開 URL」が必要。
+  - 自宅 PC の ngrok は PC を閉じると止まるので、代わりに
+    レンタルサーバ相当の「いつも動いている場所」に Node アプリを載せる。
+
+■ このリポジトリで用意しているもの
+  - Dockerfile … コンテナとしてデプロイできる
+  - 永続ディスクを /data にマウントし、SQLITE_PATH=/data/app.db にすると
+    SQLite の会話ログ・下書きが消えにくい
+
+■ 秘密情報（必ずクラウド側で設定）
+  - LINE_CHANNEL_SECRET, LINE_CHANNEL_ACCESS_TOKEN, ALLOWED_LINE_USER_ID
+  - Google: client_secret.json と token.json を
+    - 「Secret files」でパス指定する、または
+    - デプロイ後に SSH で配置する
+  - 環境変数 GOOGLE_CLIENT_SECRET_PATH / GOOGLE_TOKEN_PATH でパスを変えられる
+
+■ デプロイ後に必ずやること
+  1. 発行された https://あなたのサービス/callback を LINE Developers の Webhook に登録
+  2. 接続確認が成功すること
+  3. 本番 URL は ngrok と違い固定なので、そのまま運用できる
+
+■ サービス例（料金・無料枠は各自確認）
+  - Render.com … Web Service + Persistent Disk
+  - Fly.io … マシン常時 + volume
+  - Railway, Google Cloud Run + Cloud SQL 等
+  - 国内 VPS（さくら・ConoHa）+ Docker + Caddy/nginx + Let's Encrypt
+
+■ 注意
+  - 無料枠だけだとスリープで Webhook が遅れる・落ちることがある。
+    「常に使う」なら常時起動プラン or VPS が確実。

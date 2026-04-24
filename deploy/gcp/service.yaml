@@ -1,0 +1,77 @@
+apiVersion: serving.knative.dev/v1
+kind: Service
+metadata:
+  name: line-secretary-calendar
+  namespace: '113972940274'
+  annotations:
+    run.googleapis.com/ingress: all
+    run.googleapis.com/launch-stage: GA
+spec:
+  template:
+    metadata:
+      annotations:
+        autoscaling.knative.dev/maxScale: '3'
+        run.googleapis.com/startup-cpu-boost: 'true'
+    spec:
+      containerConcurrency: 80
+      timeoutSeconds: 300
+      containers:
+      - image: asia-northeast1-docker.pkg.dev/chirashi-493513/line-secretary/app@sha256:52adcd27d4653de388fd1a05c9a585c77fa41ecae9ae5098e0531fe61e7235d0
+        env:
+        - name: LINE_CHANNEL_SECRET
+          value: "707714c6cf37bb92c03ef4f2886c4e76"
+        - name: LINE_CHANNEL_ACCESS_TOKEN
+          value: "HQ9USa91psr6nN0VOvpRw8FpfZSkScrV+ObqxMHA1wWAzbVOeTfxrsJ65nPT0x+KaKH0uMWckQgS2zOVUEX79cd96OhHVwSsUY7QtuvKbuJL2Ee79SXI4hr8MWHLhuHfXMJfoHGF/g9TFVxvBxmsAwdB04t89/1O/w1cDnyilFU="
+        - name: ALLOWED_LINE_USER_ID
+          value: "Uab3ee1e39115aee8f4deb79a553fe4e8"
+        - name: GOOGLE_OAUTH_REDIRECT_URI
+          value: "http://127.0.0.1:8765/"
+        - name: GOOGLE_CLIENT_SECRET_JSON
+          valueFrom:
+            secretKeyRef:
+              name: google-client-secret-json
+              key: latest
+        - name: GOOGLE_TOKEN_JSON
+          valueFrom:
+            secretKeyRef:
+              name: google-token-json
+              key: latest
+        - name: CHATWORK_API_TOKEN
+          value: "b9525a7ff7f4d7f09d44f47f7b5d531a"
+        - name: CHATWORK_WEBHOOK_TOKEN
+          value: "Cm6gYQSygbK9VEJsmdEMVH7Q7nOicGXdy9iuzEhbx48="
+        - name: CHATWORK_ALLOWED_ACCOUNT_ID
+          value: "1766057"
+        - name: CRON_SECRET
+          value: "kP6YKf0Hwrp2U1MnoFjIOe8NEuWdGmbV"
+        - name: MISOCA_CLIENT_ID
+          value: "Q_qIYgiYL23RYGOjQ4cdetb6kLV2DHvUjp8iUpfHkjQ"
+        - name: MISOCA_CLIENT_SECRET
+          value: "1A3_tlLQK3spx5k--VtOJ7LFHok8CLAkBCNYFdh4TJI"
+        - name: MISOCA_BURIZUMU_ACCESS_TOKEN
+          value: "v_o0h-HXYptne-UfJJ5lOSRK1MQ0XG1Cb55M2Q4QySY"
+        - name: MISOCA_BURIZUMU_REFRESH_TOKEN
+          value: "huRdLHa39ngVdKgd2PQXXVKw1y-rLfA7VjX12Nw8uJ4"
+        - name: MISOCA_BURIZUMU_EXPIRES_AT
+          value: "1776926467243"
+        - name: MISOCA_MISOKOJI_ACCESS_TOKEN
+          value: "tw7n6oArhQkEME3zP4UP66rxLTa7iW7k1unN23oHUzw"
+        - name: MISOCA_MISOKOJI_REFRESH_TOKEN
+          value: "Bn4a05YHtJCcWM0juF3d0ULEGWjvtx7Iys_nBVTNzTw"
+        - name: MISOCA_MISOKOJI_EXPIRES_AT
+          value: "1776767277899"
+        - name: MISOCA_TRYNNOX_ACCESS_TOKEN
+          value: "p7N2nFCZ9oRHHvf6RSXMtlmTWH-3aLC4YvxYMyxycts"
+        - name: MISOCA_TRYNNOX_REFRESH_TOKEN
+          value: "nrGjYxvXm5td5B0YEpoAZAxB-V0dKtt58FnDHiuMTbQ"
+        - name: MISOCA_TRYNNOX_EXPIRES_AT
+          value: "1776910834001"
+        - name: BANK_NOTIFY_ROOM_ID
+          value: "379316021"
+        resources:
+          limits:
+            cpu: '1'
+            memory: 512Mi
+  traffic:
+  - percent: 100
+    latestRevision: true

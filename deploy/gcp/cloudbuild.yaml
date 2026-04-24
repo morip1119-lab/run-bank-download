@@ -1,0 +1,20 @@
+# Cloud Build で Docker イメージをビルドして Artifact Registry へプッシュする例
+#
+# 使い方（リポジトリルートで）:
+#   gcloud builds submit --config deploy/gcp/cloudbuild.yaml --substitutions=_IMAGE=asia-northeast1-docker.pkg.dev/PROJECT_ID/line-secretary-repo/line-secretary-calendar:latest
+#
+# PROJECT_ID を自分の GCP プロジェクト ID に置き換える
+
+substitutions:
+  _IMAGE: asia-northeast1-docker.pkg.dev/PROJECT_ID/line-secretary-repo/line-secretary-calendar:latest
+
+steps:
+  - name: gcr.io/cloud-builders/docker
+    args:
+      - build
+      - "-t"
+      - "${_IMAGE}"
+      - .
+
+images:
+  - "${_IMAGE}"

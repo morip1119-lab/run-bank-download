@@ -1,0 +1,710 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>入金管理ダッシュボード</title>
+  <script>/* __ACCOUNT_INJECT__ */</script>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f0f2f5;
+      --surface: #ffffff;
+      --border: #e2e8f0;
+      --text: #1a202c;
+      --text-muted: #718096;
+      --accent: #4f46e5;
+      --accent-light: #eef2ff;
+      --green: #16a34a;   --green-bg: #dcfce7;
+      --red: #dc2626;     --red-bg: #fee2e2;
+      --yellow: #d97706;  --yellow-bg: #fef3c7;
+      --blue: #2563eb;    --blue-bg: #dbeafe;
+      --gray-bg: #f1f5f9;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    /* ── Header ── */
+    header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 24px;
+      height: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      box-shadow: 0 1px 3px rgba(0,0,0,.06);
+    }
+    .header-left { display: flex; align-items: center; gap: 10px; }
+    .logo { font-size: 17px; font-weight: 700; }
+    .account-chip {
+      padding: 3px 10px;
+      border-radius: 20px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .header-right { display: flex; align-items: center; gap: 8px; }
+
+    /* ── Main ── */
+    main { max-width: 1160px; margin: 0 auto; padding: 22px 16px; }
+
+    /* ── Summary ── */
+    .summary-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 17px 18px;
+    }
+    .card-label { font-size: 12px; color: var(--text-muted); margin-bottom: 5px; font-weight: 500; }
+    .card-value { font-size: 24px; font-weight: 700; }
+    .card-sub   { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+    .card.paid    .card-value { color: var(--green); }
+    .card.unpaid  .card-value { color: var(--blue); }
+    .card.overdue .card-value { color: var(--red); }
+
+    /* ── Controls ── */
+    .controls {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 13px 17px;
+      margin-bottom: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 10px;
+    }
+    .cg { display: flex; align-items: center; gap: 7px; }
+    label { font-size: 13px; color: var(--text-muted); font-weight: 500; }
+    select, input[type="month"] {
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 6px 10px;
+      font-size: 14px;
+      outline: none;
+      background: var(--surface);
+      cursor: pointer;
+    }
+    select:focus, input[type="month"]:focus { border-color: var(--accent); }
+    .ml-auto { margin-left: auto; }
+
+    /* ── Buttons ── */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 8px 14px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      border: none;
+      transition: opacity .15s, transform .1s;
+    }
+    .btn:active { transform: scale(.97); }
+    .btn:disabled { opacity: .4; cursor: not-allowed; }
+    .btn-accent  { background: var(--accent); color: #fff; }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+    .btn-outline:hover { background: var(--gray-bg); }
+    .btn-green   { background: var(--green); color: #fff; }
+    .btn-green:hover { opacity: .85; }
+    .btn-sm { padding: 5px 10px; font-size: 13px; }
+    /* アカウントカラーはJS側でstyle属性で付与 */
+
+    /* ── CSV Section ── */
+    .csv-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 17px 18px;
+      margin-bottom: 16px;
+    }
+    .csv-section h3 { font-size: 14px; font-weight: 600; margin-bottom: 11px; }
+    .mf-row { display: flex; flex-wrap: wrap; align-items: center; gap: 9px; margin-bottom: 9px; }
+    .drop-zone {
+      border: 2px dashed var(--border);
+      border-radius: 10px;
+      padding: 22px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      cursor: pointer;
+      transition: border-color .2s, background .2s;
+      margin-top: 9px;
+    }
+    .drop-zone:hover, .drop-zone.dragover { border-color: var(--accent); background: var(--accent-light); }
+    .drop-zone input[type="file"] { display: none; }
+
+    /* ── Table ── */
+    .table-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+    .table-header {
+      padding: 13px 17px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .table-header h3 { font-size: 14px; font-weight: 600; }
+    .table-count { font-size: 13px; color: var(--text-muted); }
+    .table-wrap { overflow-x: auto; }
+    table { width: 100%; border-collapse: collapse; }
+    th {
+      text-align: left;
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: .05em;
+      padding: 10px 13px;
+      background: var(--gray-bg);
+      border-bottom: 1px solid var(--border);
+      white-space: nowrap;
+    }
+    td {
+      padding: 12px 13px;
+      font-size: 14px;
+      border-bottom: 1px solid var(--border);
+      vertical-align: middle;
+    }
+    tr:last-child td { border-bottom: none; }
+    tr:hover td { background: #fafafa; }
+
+    /* ── Badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 3px 9px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 600;
+      white-space: nowrap;
+    }
+    .badge-paid      { background: var(--green-bg);  color: var(--green); }
+    .badge-overdue   { background: var(--red-bg);    color: var(--red); }
+    .badge-due-today { background: var(--yellow-bg); color: var(--yellow); }
+    .badge-unpaid    { background: var(--blue-bg);   color: var(--blue); }
+
+    .amount { font-variant-numeric: tabular-nums; }
+    .has-match td { background: #f0fdf4; }
+    .match-hint { font-size: 12px; color: var(--green); margin-top: 3px; }
+
+    /* ── States ── */
+    .state-row td { text-align: center; padding: 48px; color: var(--text-muted); }
+    .spinner {
+      width: 17px; height: 17px;
+      border: 2px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin .7s linear infinite;
+      display: inline-block;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Toast ── */
+    #toast {
+      position: fixed;
+      bottom: 22px; right: 22px;
+      background: #1e293b;
+      color: #fff;
+      padding: 10px 15px;
+      border-radius: 10px;
+      font-size: 14px;
+      box-shadow: 0 4px 12px rgba(0,0,0,.25);
+      opacity: 0; transform: translateY(8px);
+      transition: opacity .2s, transform .2s;
+      pointer-events: none;
+      z-index: 200;
+    }
+    #toast.show { opacity: 1; transform: translateY(0); }
+
+    /* ── Modal ── */
+    .modal-overlay {
+      display: none;
+      position: fixed; inset: 0;
+      background: rgba(0,0,0,.45);
+      z-index: 300;
+      align-items: center;
+      justify-content: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--surface);
+      border-radius: 14px;
+      padding: 26px;
+      max-width: 440px;
+      width: 90%;
+      box-shadow: 0 20px 50px rgba(0,0,0,.25);
+    }
+    .modal h3 { font-size: 16px; font-weight: 700; margin-bottom: 13px; }
+    .modal p  { font-size: 14px; color: var(--text-muted); margin-bottom: 6px; line-height: 1.6; }
+    .modal strong { color: var(--text); }
+    .modal-actions { display: flex; gap: 9px; justify-content: flex-end; margin-top: 20px; }
+
+    @media (max-width: 600px) {
+      .summary-grid { grid-template-columns: 1fr 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="header-left">
+    <span class="logo" id="headerLogo">💰 入金管理</span>
+    <span class="account-chip" id="accountChip"></span>
+  </div>
+  <div class="header-right">
+    <button class="btn btn-outline btn-sm" id="refreshBtn">🔄 更新</button>
+    <form method="POST" id="logoutForm" style="margin:0;">
+      <button type="submit" class="btn btn-outline btn-sm">ログアウト</button>
+    </form>
+  </div>
+</header>
+
+<main>
+  <!-- サマリー -->
+  <div class="summary-grid">
+    <div class="card total">
+      <div class="card-label">請求総額</div>
+      <div class="card-value" id="summaryTotal">—</div>
+      <div class="card-sub"  id="summaryCount">—</div>
+    </div>
+    <div class="card paid">
+      <div class="card-label">✅ 入金済み</div>
+      <div class="card-value" id="summaryPaid">—</div>
+      <div class="card-sub"   id="summaryPaidAmt">—</div>
+    </div>
+    <div class="card unpaid">
+      <div class="card-label">🔵 未払い（期日前）</div>
+      <div class="card-value" id="summaryUnpaid">—</div>
+      <div class="card-sub"   id="summaryUnpaidAmt">—</div>
+    </div>
+    <div class="card overdue">
+      <div class="card-label">🔴 入金遅延</div>
+      <div class="card-value" id="summaryOverdue">—</div>
+      <div class="card-sub"   id="summaryOverdueAmt">—</div>
+    </div>
+  </div>
+
+  <!-- フィルター -->
+  <div class="controls">
+    <div class="cg">
+      <label>ステータス</label>
+      <select id="filterStatus">
+        <option value="all">すべて</option>
+        <option value="overdue">遅延</option>
+        <option value="due_today">期日当日</option>
+        <option value="unpaid">未払い</option>
+        <option value="paid">入金済み</option>
+      </select>
+    </div>
+    <div class="cg">
+      <label>月</label>
+      <input type="month" id="filterMonth">
+    </div>
+    <button class="btn btn-outline btn-sm ml-auto" id="clearFilterBtn">クリア</button>
+  </div>
+
+  <!-- MF自動取得 -->
+  <div class="csv-section">
+    <h3>📄 入出金データで自動照合</h3>
+    <div class="mf-row">
+      <button class="btn btn-sm" id="fetchMfBtn">🔄 マネーフォワードから自動取得</button>
+      <div style="display:flex;align-items:center;gap:6px;">
+        <label style="font-size:13px;">期間</label>
+        <input type="month" id="mfFromMonth" style="font-size:13px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;">
+        <span style="font-size:12px;color:var(--text-muted);">〜</span>
+        <input type="month" id="mfToMonth"   style="font-size:13px;padding:5px 8px;border:1px solid var(--border);border-radius:8px;">
+      </div>
+    </div>
+    <div id="mfStatus" style="font-size:13px;color:var(--text-muted);margin-bottom:5px;"></div>
+    <details>
+      <summary style="font-size:13px;color:var(--text-muted);cursor:pointer;user-select:none;">手動でCSVをアップロード</summary>
+      <div class="drop-zone" id="dropZone">
+        <input type="file" id="csvFile" accept=".csv">
+        <div style="font-size:26px;margin-bottom:5px;">📂</div>
+        <div>クリックまたはCSVをドラッグ＆ドロップ</div>
+        <div style="font-size:12px;margin-top:4px;">マネーフォワード / 楽天銀行の取引明細CSVに対応</div>
+      </div>
+    </details>
+    <div id="csvResult" style="margin-top:9px;font-size:13px;color:var(--text-muted);"></div>
+  </div>
+
+  <!-- テーブル -->
+  <div class="table-section">
+    <div class="table-header">
+      <h3 id="tableTitle">請求書一覧</h3>
+      <span class="table-count" id="tableCount">読み込み中...</span>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>状態</th><th>請求先</th><th>件名</th>
+            <th>請求金額</th><th>発行日</th><th>支払期日</th><th>入金日</th><th>操作</th>
+          </tr>
+        </thead>
+        <tbody id="invoiceTable">
+          <tr class="state-row"><td colspan="8"><span class="spinner"></span>読み込み中...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<!-- 入金済みモーダル -->
+<div class="modal-overlay" id="confirmModal">
+  <div class="modal">
+    <h3>入金済みにする</h3>
+    <p>以下の請求書を <strong>入金済み</strong> に更新します。Misocaのステータスも変更されます。</p>
+    <p><strong id="modalRecipient">—</strong></p>
+    <p><strong id="modalSubject">—</strong></p>
+    <p>金額: <strong id="modalAmount">—</strong></p>
+    <p>支払期日: <strong id="modalDue">—</strong></p>
+    <p style="margin-top:12px;">
+      <label style="font-size:14px;font-weight:500;">入金日
+        <input type="date" id="modalPaidOn" style="margin-left:10px;padding:4px 8px;border:1px solid var(--border);border-radius:6px;font-size:14px;">
+      </label>
+    </p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="modalCancelBtn">キャンセル</button>
+      <button class="btn btn-green"   id="modalConfirmBtn">入金済みにする</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+  // ── アカウント設定（サーバーから注入） ────────────────────────────
+  const ACCOUNT       = window.PAYMENT_ACCOUNT       || "BURIZUMU";
+  const ACCOUNT_LABEL = window.PAYMENT_ACCOUNT_LABEL || ACCOUNT;
+  const ACCOUNT_ICON  = window.PAYMENT_ACCOUNT_ICON  || "💰";
+  const ACCOUNT_COLOR = window.PAYMENT_ACCOUNT_COLOR || "#4f46e5";
+  const ACCOUNT_PATH  = window.PAYMENT_ACCOUNT_PATH  || "burizumu";
+  const BASE          = `/payment/${ACCOUNT_PATH}`;
+
+  // ── ヘッダー反映 ─────────────────────────────────────────────────
+  document.getElementById("headerLogo").textContent  = `${ACCOUNT_ICON} ${ACCOUNT_LABEL} 入金管理`;
+  document.getElementById("accountChip").textContent = ACCOUNT_LABEL;
+  document.getElementById("accountChip").style.cssText =
+    `background:${ACCOUNT_COLOR}22;color:${ACCOUNT_COLOR};`;
+  document.getElementById("logoutForm").action = `${BASE}/logout`;
+  document.getElementById("fetchMfBtn").style.cssText =
+    `background:${ACCOUNT_COLOR};color:#fff;`;
+  document.getElementById("tableTitle").textContent =
+    `${ACCOUNT_ICON} ${ACCOUNT_LABEL} 請求書一覧`;
+  document.title = `${ACCOUNT_LABEL} – 入金管理`;
+
+  // ── 状態 ─────────────────────────────────────────────────────────
+  let allInvoices = [];
+  let pendingPaid = null;
+
+  // ── 初期化 ───────────────────────────────────────────────────────
+  const today = new Date();
+  const thisMonth = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,"0")}`;
+  document.getElementById("filterMonth").value  = thisMonth;
+  document.getElementById("mfFromMonth").value  = thisMonth;
+  document.getElementById("mfToMonth").value    = thisMonth;
+
+  loadInvoices();
+
+  // ── イベント ─────────────────────────────────────────────────────
+  document.getElementById("refreshBtn").addEventListener("click", loadInvoices);
+  document.getElementById("filterStatus").addEventListener("change", renderTable);
+  document.getElementById("filterMonth").addEventListener("change", renderTable);
+  document.getElementById("clearFilterBtn").addEventListener("click", () => {
+    document.getElementById("filterStatus").value = "all";
+    document.getElementById("filterMonth").value  = thisMonth;
+    renderTable();
+  });
+  document.getElementById("fetchMfBtn").addEventListener("click", fetchFromMoneyForward);
+
+  const dropZone     = document.getElementById("dropZone");
+  const csvFileInput = document.getElementById("csvFile");
+  dropZone.addEventListener("click", () => csvFileInput.click());
+  csvFileInput.addEventListener("change", (e) => { if (e.target.files[0]) uploadCsv(e.target.files[0]); });
+  dropZone.addEventListener("dragover",  (e) => { e.preventDefault(); dropZone.classList.add("dragover"); });
+  dropZone.addEventListener("dragleave", ()  => dropZone.classList.remove("dragover"));
+  dropZone.addEventListener("drop", (e) => {
+    e.preventDefault(); dropZone.classList.remove("dragover");
+    if (e.dataTransfer.files[0]) uploadCsv(e.dataTransfer.files[0]);
+  });
+  document.getElementById("modalCancelBtn").addEventListener("click", closeModal);
+  document.getElementById("modalConfirmBtn").addEventListener("click", confirmMarkPaid);
+  document.getElementById("confirmModal").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("confirmModal")) closeModal();
+  });
+
+  // ── データ取得 ───────────────────────────────────────────────────
+  async function loadInvoices() {
+    setTableLoading();
+    try {
+      const res  = await fetch(`${BASE}/api/invoices`);
+      if (res.status === 401) { location.reload(); return; }
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      allInvoices = data.invoices;
+      updateSummary();
+      renderTable();
+    } catch (e) {
+      document.getElementById("invoiceTable").innerHTML =
+        `<tr class="state-row"><td colspan="8">⚠️ ${e.message}</td></tr>`;
+      document.getElementById("tableCount").textContent = "エラー";
+    }
+  }
+
+  // ── サマリー ─────────────────────────────────────────────────────
+  function updateSummary() {
+    const fmt = (n) => n.toLocaleString("ja-JP") + "円";
+    const sum  = (arr) => arr.reduce((s, i) => s + i.amount, 0);
+    const paid    = allInvoices.filter((i) => i.paymentStatus === "paid");
+    const unpaid  = allInvoices.filter((i) => i.paymentStatus === "unpaid" || i.paymentStatus === "due_today");
+    const overdue = allInvoices.filter((i) => i.paymentStatus === "overdue");
+
+    document.getElementById("summaryTotal").textContent     = fmt(sum(allInvoices));
+    document.getElementById("summaryCount").textContent     = `${allInvoices.length}件`;
+    document.getElementById("summaryPaid").textContent      = `${paid.length}件`;
+    document.getElementById("summaryPaidAmt").textContent   = fmt(sum(paid));
+    document.getElementById("summaryUnpaid").textContent    = `${unpaid.length}件`;
+    document.getElementById("summaryUnpaidAmt").textContent = fmt(sum(unpaid));
+    document.getElementById("summaryOverdue").textContent   = `${overdue.length}件`;
+    document.getElementById("summaryOverdueAmt").textContent= fmt(sum(overdue));
+
+    // summaryTotalのアカウントカラー
+    document.querySelector(".card.total .card-value").style.color = ACCOUNT_COLOR;
+  }
+
+  // ── テーブル描画 ─────────────────────────────────────────────────
+  function renderTable() {
+    const filterStatus = document.getElementById("filterStatus").value;
+    const filterMonth  = document.getElementById("filterMonth").value;
+
+    const order = { overdue: 0, due_today: 1, unpaid: 2, paid: 3 };
+    let invoices = [...allInvoices].sort((a, b) => {
+      const od = (order[a.paymentStatus]??9) - (order[b.paymentStatus]??9);
+      return od !== 0 ? od : (a.dueDate||"9999") < (b.dueDate||"9999") ? -1 : 1;
+    });
+
+    if (filterStatus !== "all") invoices = invoices.filter((i) => i.paymentStatus === filterStatus);
+    if (filterMonth)            invoices = invoices.filter((i) => (i.dueDate||i.issueDate||"").startsWith(filterMonth));
+
+    document.getElementById("tableCount").textContent = `${invoices.length}件`;
+
+    if (!invoices.length) {
+      document.getElementById("invoiceTable").innerHTML =
+        `<tr class="state-row"><td colspan="8">該当する請求書がありません</td></tr>`;
+      return;
+    }
+
+    document.getElementById("invoiceTable").innerHTML = invoices.map((inv) => {
+      // DB保存済み照合（リロードしても残る）
+      const m         = inv.csvMatch;
+      const hasMatch  = !!m;
+      const matchHint = hasMatch
+        ? `<div class="match-hint">✅ CSV照合: ${m.date} ${(m.amount||0).toLocaleString("ja-JP")}円</div>`
+        : "";
+      const amount  = inv.amount > 0 ? `<span class="amount">${inv.amount.toLocaleString("ja-JP")}円</span>` : "—";
+      const actions = inv.paymentStatus !== "paid"
+        ? `<button class="btn btn-green btn-sm" onclick="openMarkPaidModal(${JSON.stringify(inv).replace(/"/g,"&quot;")})">入金済みにする</button>`
+        : `<a href="${inv.misocaUrl}" target="_blank" class="btn btn-outline btn-sm">Misocaで確認</a>`;
+      const link = `<a href="${inv.misocaUrl}" target="_blank" style="color:${ACCOUNT_COLOR};font-size:12px;text-decoration:none;margin-left:6px;">📄</a>`;
+
+      // 入金日: CSV照合日 or Misoca paid_on
+      const paidOnDate = m?.date || inv.paidOn || null;
+      const paidOnCell = paidOnDate
+        ? `<span style="color:var(--green);font-weight:500;">${paidOnDate}</span>`
+        : `<span style="color:var(--text-muted);">—</span>`;
+
+      return `<tr class="${hasMatch?"has-match":""}">
+        <td>${statusBadge(inv.paymentStatus)}</td>
+        <td>
+          <div style="font-weight:500;">${esc(inv.recipientName)}</div>
+          <div style="font-size:12px;color:var(--text-muted);">${esc(inv.invoiceNumber)}</div>
+        </td>
+        <td><div>${esc(inv.subject||"—")}</div>${matchHint}</td>
+        <td>${amount}</td>
+        <td style="color:var(--text-muted);font-size:13px;">${inv.issueDate||"—"}</td>
+        <td style="font-weight:${inv.paymentStatus==="overdue"?"700":"400"};color:${inv.paymentStatus==="overdue"?"var(--red)":"inherit"};">
+          ${inv.dueDate||"—"}
+        </td>
+        <td style="font-size:13px;">${paidOnCell}</td>
+        <td><div style="display:flex;align-items:center;">${actions}${link}</div></td>
+      </tr>`;
+    }).join("");
+  }
+
+  function setTableLoading() {
+    document.getElementById("invoiceTable").innerHTML =
+      `<tr class="state-row"><td colspan="8"><span class="spinner"></span>読み込み中...</td></tr>`;
+    document.getElementById("tableCount").textContent = "読み込み中...";
+  }
+
+  function statusBadge(status) {
+    const map = {
+      paid:      { cls:"badge-paid",      icon:"✅", label:"入金済み" },
+      overdue:   { cls:"badge-overdue",   icon:"🔴", label:"遅延" },
+      due_today: { cls:"badge-due-today", icon:"🟡", label:"本日期日" },
+      unpaid:    { cls:"badge-unpaid",    icon:"🔵", label:"未払い" },
+    };
+    const b = map[status] || { cls:"badge-unpaid", icon:"⚪", label: status };
+    return `<span class="badge ${b.cls}">${b.icon} ${b.label}</span>`;
+  }
+
+  // ── MoneyForward 自動取得 ────────────────────────────────────────
+  async function fetchFromMoneyForward() {
+    const btn      = document.getElementById("fetchMfBtn");
+    const statusEl = document.getElementById("mfStatus");
+    const resultEl = document.getElementById("csvResult");
+
+    const fromMonth = document.getElementById("mfFromMonth").value;
+    const toMonth   = document.getElementById("mfToMonth").value;
+    const from = fromMonth ? `${fromMonth}-01` : undefined;
+    const toD  = toMonth ? new Date(`${toMonth}-01`) : new Date();
+    toD.setMonth(toD.getMonth()+1); toD.setDate(0);
+    const to = `${toD.getFullYear()}-${String(toD.getMonth()+1).padStart(2,"0")}-${String(toD.getDate()).padStart(2,"0")}`;
+
+    btn.disabled = true;
+    btn.textContent = "⏳ 取得中...";
+    statusEl.textContent = "🔄 MoneyForward にアクセス中（30秒ほどかかります）";
+    resultEl.textContent = "";
+
+    try {
+      const res  = await fetch(`${BASE}/api/fetch-mf`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ from, to }),
+      });
+      if (res.status === 401) { location.reload(); return; }
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+
+      // サーバーから返ってきた invoices (DB照合込み) で allInvoices を更新
+      if (data.invoices) { allInvoices = data.invoices; updateSummary(); }
+      const gr         = data.groupResult || {};
+      const matchCount = gr.matchCount ?? 0;
+
+      statusEl.textContent = "";
+      resultEl.innerHTML = gr.error
+        ? `❌ ${gr.error}`
+        : `✅ <strong>${gr.transactions??0}件</strong>の取引を取得。<strong>${matchCount}件</strong>の請求書と一致しました（DB保存済み）。`;
+      renderTable();
+      showToast(`MF取得完了: ${matchCount}件一致`);
+    } catch (e) {
+      statusEl.textContent = "";
+      resultEl.innerHTML = e.message.includes("MONEYFORWARD_EMAIL")
+        ? `❌ .env に <code>MONEYFORWARD_EMAIL</code> と <code>MONEYFORWARD_PASSWORD</code> を設定してください`
+        : `❌ エラー: ${e.message}`;
+    } finally {
+      btn.disabled = false;
+      btn.textContent = "🔄 マネーフォワードから自動取得";
+    }
+  }
+
+  // ── CSV手動アップロード ──────────────────────────────────────────
+  async function uploadCsv(file) {
+    const resultEl = document.getElementById("csvResult");
+    resultEl.textContent = "⏳ 照合中...";
+    const formData = new FormData();
+    formData.append("csv", file);
+    try {
+      const res  = await fetch(`${BASE}/api/upload-csv`, { method: "POST", body: formData });
+      if (res.status === 401) { location.reload(); return; }
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      // DB照合込みの invoices で更新
+      if (data.invoices) { allInvoices = data.invoices; updateSummary(); }
+      const matchCount = data.savedCount ?? 0;
+      resultEl.innerHTML = `✅ <strong>${data.transactions.length}件</strong>の取引を読み込みました。<strong>${matchCount}件</strong>一致しました（DB保存済み）。`;
+      renderTable();
+      showToast(`CSV照合完了: ${matchCount}件一致`);
+    } catch (e) {
+      resultEl.textContent = `❌ エラー: ${e.message}`;
+    }
+  }
+
+  // ── 入金済みモーダル ─────────────────────────────────────────────
+  function openMarkPaidModal(inv) {
+    pendingPaid = inv;
+    document.getElementById("modalRecipient").textContent = `宛先: ${inv.recipientName}`;
+    document.getElementById("modalSubject").textContent   = `件名: ${inv.subject||"（件名なし）"}`;
+    document.getElementById("modalAmount").textContent    = inv.amount > 0 ? inv.amount.toLocaleString("ja-JP")+"円" : "—";
+    document.getElementById("modalDue").textContent       = inv.dueDate || "—";
+    // CSV照合日があればデフォルトにセット、なければ今日
+    const defaultDate = inv.csvMatch?.date || new Date().toISOString().slice(0, 10);
+    document.getElementById("modalPaidOn").value = defaultDate;
+    document.getElementById("confirmModal").classList.add("open");
+  }
+
+  function closeModal() {
+    document.getElementById("confirmModal").classList.remove("open");
+    pendingPaid = null;
+  }
+
+  async function confirmMarkPaid() {
+    if (!pendingPaid) return;
+    const btn = document.getElementById("modalConfirmBtn");
+    btn.disabled = true; btn.textContent = "更新中...";
+    try {
+      const paidOn = document.getElementById("modalPaidOn").value || null;
+      const res  = await fetch(`${BASE}/api/mark-paid`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ invoiceId: pendingPaid.id, paidOn }),
+      });
+      if (res.status === 401) { location.reload(); return; }
+      const data = await res.json();
+      if (!data.ok) throw new Error(data.error);
+      // ローカル状態を即時反映
+      const idx = allInvoices.findIndex((i) => i.id === pendingPaid.id);
+      if (idx >= 0) {
+        allInvoices[idx].paymentStatus = "paid";
+        allInvoices[idx].paidOn = data.paidOn || paidOn || null;
+        allInvoices[idx].csvMatch = null;
+      }
+      closeModal(); updateSummary(); renderTable();
+      showToast("✅ 入金済みに更新しました（Misocaにも反映）");
+    } catch (e) {
+      showToast(`❌ 更新失敗: ${e.message}`);
+    } finally {
+      btn.disabled = false; btn.textContent = "入金済みにする";
+    }
+  }
+
+  // ── ユーティリティ ───────────────────────────────────────────────
+  function esc(s) {
+    return String(s??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+  }
+
+  let toastTimer;
+  function showToast(msg) {
+    const el = document.getElementById("toast");
+    el.textContent = msg; el.classList.add("show");
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => el.classList.remove("show"), 3000);
+  }
+</script>
+</body>
+</html>
