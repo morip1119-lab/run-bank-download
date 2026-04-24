@@ -383,6 +383,38 @@ async function navigateToPrevMonth(page) {
   console.log(`[sumishin] 前月へ移動完了 (口座=${info.account})`);
 }
 
+// 月別サマリーリストの「3月 入金... 出金...」リンクを直接クリックして対象月へ移動する。
+// 「前の月」ボタンは口座をリセットする副作用があるため、こちらを優先使用する。
+async function navigateToMonthByList(page, targetMonth) {
+  const monthLabel = `${targetMonth}月`;
+
+  const clicked = await page.evaluate((label) => {
+    // 「3月 入金 XXX 出金 YYY」形式のリンクを探す
+    const links = Array.from(document.querySelectorAll("a"));
+    const target = links.find(el => {
+      const text = el.textContent.trim();
+      return text.startsWith(label) && text.includes("入金");
+    });
+    if (target) {
+      const preview = target.textContent.trim().slice(0, 30);
+      target.click();
+      return preview;
+    }
+    return null;
+  }, monthLabel);
+
+  if (!clicked) {
+    // フォールバック: 月リストが見つからない場合は「前の月」ボタンを使用
+    console.log(`[sumishin] ${monthLabel}リンクが見つかりません。前の月ボタンを使用`);
+    await navigateToPrevMonth(page);
+    return;
+  }
+
+  console.log(`[sumishin] ${monthLabel}へ移動: ${clicked}`);
+  await page.waitForLoadState("networkidle", { timeout: 10000 }).catch(() => {});
+  await page.waitForTimeout(1000);
+}
+
 // ── 入出金明細ページへ移動 ────────────────────────────────────────
 
 async function goToMeisai(page) {
@@ -846,7 +878,6 @@ async function main() {
     page = await context.newPage();
     await login(page);
     await goToMeisai(page);
-    await navigateToPrevMonth(page);
     console.log("[sumishin] 再ログイン完了");
   };
 
@@ -856,9 +887,6 @@ async function main() {
 
     // ── 入出金明細ページへ
     await goToMeisai(page);
-
-    // ── 前月へ移動（1回だけ。各口座の selectAccount 後はこのセッション月が保持される）
-    await navigateToPrevMonth(page);
 
     // ── 対象口座（固定リスト）
     const accounts = TARGET_ACCOUNTS;
@@ -870,7 +898,9 @@ async function main() {
     for (const accountName of accounts) {
       console.log(`\n▶ ${accountName}`);
       try {
+        // 口座選択 → 月別サマリーリストから対象月をクリック → CSV取得
         await selectAccount(page, accountName);
+        await navigateToMonthByList(page, displayMonth);
         await downloadCsv(page, context, accountName, label, outputDir);
         results.success.push(accountName);
       } catch (e) {
@@ -884,6 +914,7 @@ async function main() {
           try {
             await relaunch();
             await selectAccount(page, accountName);
+            await navigateToMonthByList(page, displayMonth);
             await downloadCsv(page, context, accountName, label, outputDir);
             results.success.push(accountName);
           } catch (retryErr) {
