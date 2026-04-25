@@ -5,7 +5,7 @@ import { handleWebhookEvent } from "./handlers.js";
 import { handleChatworkMessage } from "./chatwork_handlers.js";
 import { verifyChatworkSignature, sendMessage as cwSendMessage } from "./chatwork_client.js";
 import { getDb } from "./db.js";
-import { getDueReminders, markReminderSent } from "./reminder_store.js";
+import { getDueReminders, markReminderSent, markReminderFailed } from "./reminder_store.js";
 import { checkYesterdayBankDeposits, buildDepositMessage } from "./bank_service.js";
 import { processIncomingInvoices } from "./incoming_invoice_service.js";
 import paymentRouter from "./payment_routes.js";
@@ -138,6 +138,7 @@ app.post("/cron/remind", express.json(), async (req, res) => {
       console.log(`[remind] sent id=${r.id} platform=${r.platform} chat=${r.chatId}`);
     } catch (e) {
       console.error(`[remind] failed id=${r.id}:`, e.message);
+      await markReminderFailed(r.id);
     }
   }
   res.status(200).json({ processed: due.length });

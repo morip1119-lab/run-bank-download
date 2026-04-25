@@ -1,0 +1,544 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ネット銀行 CSV自動化 処理フロー</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: "Hiragino Sans", "Meiryo", sans-serif;
+      background: #0f1117;
+      color: #e2e8f0;
+      padding: 40px 20px 80px;
+      min-height: 100vh;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #f8fafc;
+    }
+    .subtitle {
+      text-align: center;
+      font-size: 0.9rem;
+      color: #64748b;
+      margin-bottom: 48px;
+    }
+
+    /* ── セクションタイトル ── */
+    .section-title {
+      font-size: 1rem;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      margin-bottom: 20px;
+      padding-left: 4px;
+    }
+
+    /* ── メインフロー ── */
+    .flow-wrap {
+      max-width: 860px;
+      margin: 0 auto 60px;
+    }
+
+    .flow-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 16px;
+      margin-bottom: 6px;
+    }
+
+    /* 矢印縦線 */
+    .arrow-col {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 48px;
+      flex-shrink: 0;
+      padding-top: 18px;
+    }
+    .arrow-line {
+      width: 2px;
+      flex: 1;
+      min-height: 40px;
+      background: linear-gradient(to bottom, #334155, #1e293b);
+    }
+    .arrow-head {
+      width: 0;
+      height: 0;
+      border-left: 7px solid transparent;
+      border-right: 7px solid transparent;
+      border-top: 10px solid #475569;
+    }
+
+    /* カード */
+    .card {
+      flex: 1;
+      border-radius: 12px;
+      padding: 20px 24px;
+      position: relative;
+      border: 1px solid #1e293b;
+    }
+    .card-trigger {
+      background: linear-gradient(135deg, #1e3a5f 0%, #1e293b 100%);
+      border-color: #2563eb44;
+    }
+    .card-step {
+      background: #161b27;
+      border-color: #1e293b;
+    }
+    .card-highlight {
+      background: linear-gradient(135deg, #1a2e1a 0%, #161b27 100%);
+      border-color: #16a34a44;
+    }
+    .card-drive {
+      background: linear-gradient(135deg, #2d1a3e 0%, #161b27 100%);
+      border-color: #7c3aed44;
+    }
+
+    .step-badge {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 700;
+      padding: 2px 10px;
+      border-radius: 999px;
+      margin-bottom: 10px;
+      letter-spacing: .06em;
+    }
+    .badge-blue  { background: #1d4ed8; color: #bfdbfe; }
+    .badge-gray  { background: #334155; color: #94a3b8; }
+    .badge-green { background: #15803d; color: #bbf7d0; }
+    .badge-purple{ background: #6d28d9; color: #ddd6fe; }
+    .badge-orange{ background: #b45309; color: #fde68a; }
+
+    .card h3 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      color: #f1f5f9;
+    }
+    .card p {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      line-height: 1.7;
+    }
+    .card code {
+      background: #0f172a;
+      border: 1px solid #334155;
+      border-radius: 4px;
+      padding: 1px 6px;
+      font-size: 0.8rem;
+      color: #7dd3fc;
+      font-family: "Consolas", monospace;
+    }
+
+    /* サブステップ（ループ内） */
+    .sub-steps {
+      margin-top: 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+    .sub-step {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .sub-num {
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: #1e293b;
+      border: 1px solid #334155;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: #64748b;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+    .sub-text {
+      font-size: 0.83rem;
+      color: #94a3b8;
+      line-height: 1.6;
+    }
+    .sub-text strong { color: #cbd5e1; }
+
+    /* ── データフロー ── */
+    .data-flow {
+      max-width: 860px;
+      margin: 0 auto 60px;
+      display: flex;
+      align-items: center;
+      gap: 0;
+      flex-wrap: wrap;
+    }
+    .df-node {
+      flex: 1;
+      min-width: 130px;
+      background: #161b27;
+      border: 1px solid #1e293b;
+      border-radius: 12px;
+      padding: 16px 14px;
+      text-align: center;
+    }
+    .df-node .icon { font-size: 1.8rem; margin-bottom: 6px; }
+    .df-node .label {
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #e2e8f0;
+      margin-bottom: 4px;
+    }
+    .df-node .desc {
+      font-size: 0.72rem;
+      color: #64748b;
+      line-height: 1.5;
+    }
+    .df-arrow {
+      font-size: 1.4rem;
+      color: #334155;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+
+    /* ── 登場人物テーブル ── */
+    .roles {
+      max-width: 860px;
+      margin: 0 auto 60px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 12px;
+    }
+    .role-card {
+      background: #161b27;
+      border: 1px solid #1e293b;
+      border-radius: 10px;
+      padding: 14px 16px;
+      display: flex;
+      gap: 12px;
+      align-items: flex-start;
+    }
+    .role-icon { font-size: 1.5rem; flex-shrink: 0; }
+    .role-name { font-size: 0.85rem; font-weight: 700; color: #e2e8f0; margin-bottom: 3px; }
+    .role-desc { font-size: 0.78rem; color: #64748b; line-height: 1.5; }
+
+    /* ── 毎月のイメージ ── */
+    .monthly {
+      max-width: 860px;
+      margin: 0 auto;
+      background: #161b27;
+      border: 1px solid #1e293b;
+      border-radius: 16px;
+      padding: 28px 32px;
+    }
+    .monthly-row {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+    .monthly-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      min-width: 100px;
+    }
+    .monthly-icon {
+      font-size: 2rem;
+      width: 56px;
+      height: 56px;
+      border-radius: 14px;
+      background: #1e293b;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .monthly-label { font-size: 0.78rem; color: #94a3b8; text-align: center; }
+    .monthly-arrow { font-size: 1.6rem; color: #334155; }
+    .monthly-time {
+      font-size: 0.72rem;
+      color: #64748b;
+      text-align: center;
+      padding: 4px 10px;
+      background: #0f172a;
+      border-radius: 6px;
+      margin-top: 2px;
+    }
+
+    /* レスポンシブ */
+    @media (max-width: 600px) {
+      .data-flow { flex-direction: column; }
+      .df-arrow { transform: rotate(90deg); }
+      .monthly-row { flex-direction: column; }
+      .monthly-arrow { transform: rotate(90deg); }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>ネット銀行 CSV 自動ダウンロード＆アップロード</h1>
+  <p class="subtitle">処理フロー図解 — <code>npm run sumishin-download</code> を実行したとき何が起きるか</p>
+
+  <!-- ═══════════════ メインフロー ═══════════════ -->
+  <div class="flow-wrap">
+    <p class="section-title">処理の流れ</p>
+
+    <!-- トリガー -->
+    <div class="flow-row">
+      <div class="arrow-col"></div>
+      <div class="card card-trigger">
+        <span class="step-badge badge-blue">START</span>
+        <h3>コマンド実行</h3>
+        <p>ターミナルで <code>npm run sumishin-download</code> を入力<br>
+        → <code>node scripts/download_sumishin_csv.js</code> が起動</p>
+      </div>
+    </div>
+
+    <div class="flow-row">
+      <div class="arrow-col"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+    </div>
+
+    <!-- ステップ1 -->
+    <div class="flow-row">
+      <div class="arrow-col"></div>
+      <div class="card card-step">
+        <span class="step-badge badge-gray">STEP 1</span>
+        <h3>🔑 ログイン</h3>
+        <p>Playwright（ブラウザ自動操作）が Chromium を起動し<br>
+        <code>.env</code> に書いた ID・パスワードを自動入力してログイン</p>
+      </div>
+    </div>
+
+    <div class="flow-row">
+      <div class="arrow-col"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+    </div>
+
+    <!-- ステップ2 -->
+    <div class="flow-row">
+      <div class="arrow-col"></div>
+      <div class="card card-step">
+        <span class="step-badge badge-gray">STEP 2</span>
+        <h3>📄 入出金明細ページへ移動</h3>
+        <p>メニューの「入出金明細」リンクを自動クリックして移動</p>
+      </div>
+    </div>
+
+    <div class="flow-row">
+      <div class="arrow-col"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+    </div>
+
+    <!-- ステップ3 ループ -->
+    <div class="flow-row">
+      <div class="arrow-col"></div>
+      <div class="card card-highlight">
+        <span class="step-badge badge-green">STEP 3　×11回繰り返し</span>
+        <h3>💾 各口座のCSVをダウンロード</h3>
+        <div class="sub-steps">
+          <div class="sub-step">
+            <div class="sub-num">1</div>
+            <div class="sub-text"><strong>口座を選択</strong>　ドロップダウンメニューを自動操作（代表口座 → 税金 → … の順）</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">2</div>
+            <div class="sub-text"><strong>前月へ移動</strong>　ページ内の「3月 入金… 出金…」リンクをクリックして対象月に切り替え</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">3</div>
+            <div class="sub-text"><strong>ダウンロードボタン</strong>を自動クリック → パネルが開く → 「CSV」ボタンを自動クリック</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">4</div>
+            <div class="sub-text"><strong>APIレスポンスをキャプチャ</strong>　銀行APIが JSON 形式でCSVデータを返す<br>
+            → Java byte配列 → Shift-JIS → CSVファイルに変換</div>
+          </div>
+          <div class="sub-step">
+            <div class="sub-num">5</div>
+            <div class="sub-text"><strong>ファイル保存</strong>　<code>downloads/2026-03/202603_代表口座.csv</code> など</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="flow-row">
+      <div class="arrow-col"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+    </div>
+
+    <!-- ステップ4 -->
+    <div class="flow-row">
+      <div class="arrow-col"></div>
+      <div class="card card-drive">
+        <span class="step-badge badge-purple">STEP 4</span>
+        <h3>☁️ Google Drive へ自動アップロード</h3>
+        <p><code>token.json</code> の認証情報で Google Drive API に接続<br>
+        → 指定フォルダ内に <strong>「2026年3月」</strong> サブフォルダを自動作成<br>
+        → 11個のCSVファイルをまとめてアップロード</p>
+      </div>
+    </div>
+
+    <div class="flow-row">
+      <div class="arrow-col"><div class="arrow-line"></div><div class="arrow-head"></div></div>
+    </div>
+
+    <!-- 完了 -->
+    <div class="flow-row">
+      <div class="arrow-col"></div>
+      <div class="card card-trigger">
+        <span class="step-badge badge-orange">DONE</span>
+        <h3>✅ 完了</h3>
+        <p>ターミナルに結果サマリーが表示される<br>
+        Google Drive のフォルダURLも表示されるので確認可能</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ データフロー ═══════════════ -->
+  <div class="flow-wrap">
+    <p class="section-title">データの流れ</p>
+  </div>
+  <div class="data-flow">
+    <div class="df-node">
+      <div class="icon">🏦</div>
+      <div class="label">ネット銀行</div>
+      <div class="desc">APIが JSON 形式で<br>CSV データを返す</div>
+    </div>
+    <div class="df-arrow">→</div>
+    <div class="df-node">
+      <div class="icon">💻</div>
+      <div class="label">スクリプト（PC内）</div>
+      <div class="desc">byte配列を<br>Shift-JIS CSVに変換<br>一時保存</div>
+    </div>
+    <div class="df-arrow">→</div>
+    <div class="df-node">
+      <div class="icon">📁</div>
+      <div class="label">downloads/2026-03/</div>
+      <div class="desc">PC内の<br>一時フォルダ<br>11ファイル</div>
+    </div>
+    <div class="df-arrow">→</div>
+    <div class="df-node">
+      <div class="icon">☁️</div>
+      <div class="label">Google Drive</div>
+      <div class="desc">「2026年3月」<br>フォルダに<br>自動格納</div>
+    </div>
+    <div class="df-arrow">→</div>
+    <div class="df-node">
+      <div class="icon">👩‍💼</div>
+      <div class="label">税理士さん</div>
+      <div class="desc">共有フォルダを<br>参照するだけ<br>✅</div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 登場人物 ═══════════════ -->
+  <div class="flow-wrap" style="margin-top:60px">
+    <p class="section-title">登場人物と役割</p>
+  </div>
+  <div class="roles">
+    <div class="role-card">
+      <div class="role-icon">⚙️</div>
+      <div>
+        <div class="role-name">Node.js</div>
+        <div class="role-desc">スクリプトを動かすエンジン。「車のエンジン」に相当</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">🎭</div>
+      <div>
+        <div class="role-name">Playwright</div>
+        <div class="role-desc">ブラウザを自動操作するライブラリ。「ロボットの手」</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">🌐</div>
+      <div>
+        <div class="role-name">Chromium</div>
+        <div class="role-desc">実際に動くブラウザ本体（Chrome系）。画面に表示される</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">🔐</div>
+      <div>
+        <div class="role-name">.env</div>
+        <div class="role-desc">銀行のID・パスワードを保存する設定ファイル。Gitに含めない</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">🗝️</div>
+      <div>
+        <div class="role-name">token.json</div>
+        <div class="role-desc">Google Driveにアクセスするための認証情報。Gitに含めない</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">📦</div>
+      <div>
+        <div class="role-name">googleapis</div>
+        <div class="role-desc">Google Drive APIを簡単に使えるライブラリ。npmでインストール済み</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">📂</div>
+      <div>
+        <div class="role-name">downloads/</div>
+        <div class="role-desc">CSVの一時保存場所（PC内）。アップロード後も残る</div>
+      </div>
+    </div>
+    <div class="role-card">
+      <div class="role-icon">🐙</div>
+      <div>
+        <div class="role-name">GitHub</div>
+        <div class="role-desc">スクリプトのコードを保存・管理するリポジトリ</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ 毎月のイメージ ═══════════════ -->
+  <div class="flow-wrap" style="margin-top:60px">
+    <p class="section-title">毎月の実行イメージ</p>
+  </div>
+  <div class="monthly">
+    <div class="monthly-row">
+      <div class="monthly-item">
+        <div class="monthly-icon">📅</div>
+        <div class="monthly-label">毎月1日ごろ</div>
+      </div>
+      <div class="monthly-arrow">→</div>
+      <div class="monthly-item">
+        <div class="monthly-icon">⌨️</div>
+        <div class="monthly-label">コマンド1つ実行</div>
+        <div class="monthly-time">npm run sumishin-download</div>
+      </div>
+      <div class="monthly-arrow">→</div>
+      <div class="monthly-item">
+        <div class="monthly-icon">⏳</div>
+        <div class="monthly-label">待つだけ</div>
+        <div class="monthly-time">約5〜10分</div>
+      </div>
+      <div class="monthly-arrow">→</div>
+      <div class="monthly-item">
+        <div class="monthly-icon">☁️</div>
+        <div class="monthly-label">Drive に自動格納</div>
+        <div class="monthly-time">「2026年4月」フォルダ</div>
+      </div>
+      <div class="monthly-arrow">→</div>
+      <div class="monthly-item">
+        <div class="monthly-icon">📨</div>
+        <div class="monthly-label">税理士に連絡</div>
+        <div class="monthly-time">「アップロードしました」</div>
+      </div>
+      <div class="monthly-arrow">→</div>
+      <div class="monthly-item">
+        <div class="monthly-icon">✅</div>
+        <div class="monthly-label">完了！</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

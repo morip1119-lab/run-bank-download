@@ -433,12 +433,12 @@
 
   // ── イベント ─────────────────────────────────────────────────────
   document.getElementById("refreshBtn").addEventListener("click", loadInvoices);
-  document.getElementById("filterStatus").addEventListener("change", renderTable);
-  document.getElementById("filterMonth").addEventListener("change", renderTable);
+  document.getElementById("filterStatus").addEventListener("change", () => { updateSummary(); renderTable(); });
+  document.getElementById("filterMonth").addEventListener("change", () => { updateSummary(); renderTable(); });
   document.getElementById("clearFilterBtn").addEventListener("click", () => {
     document.getElementById("filterStatus").value = "all";
     document.getElementById("filterMonth").value  = thisMonth;
-    renderTable();
+    updateSummary(); renderTable();
   });
   document.getElementById("fetchMfBtn").addEventListener("click", fetchFromMoneyForward);
 
@@ -480,12 +480,19 @@
   function updateSummary() {
     const fmt = (n) => n.toLocaleString("ja-JP") + "円";
     const sum  = (arr) => arr.reduce((s, i) => s + i.amount, 0);
-    const paid    = allInvoices.filter((i) => i.paymentStatus === "paid");
-    const unpaid  = allInvoices.filter((i) => i.paymentStatus === "unpaid" || i.paymentStatus === "due_today");
-    const overdue = allInvoices.filter((i) => i.paymentStatus === "overdue");
 
-    document.getElementById("summaryTotal").textContent     = fmt(sum(allInvoices));
-    document.getElementById("summaryCount").textContent     = `${allInvoices.length}件`;
+    // 月フィルターを適用した件数・金額をサマリーに反映
+    const filterMonth = document.getElementById("filterMonth").value;
+    const base = filterMonth
+      ? allInvoices.filter((i) => (i.dueDate || i.issueDate || "").startsWith(filterMonth))
+      : allInvoices;
+
+    const paid    = base.filter((i) => i.paymentStatus === "paid");
+    const unpaid  = base.filter((i) => i.paymentStatus === "unpaid" || i.paymentStatus === "due_today");
+    const overdue = base.filter((i) => i.paymentStatus === "overdue");
+
+    document.getElementById("summaryTotal").textContent     = fmt(sum(base));
+    document.getElementById("summaryCount").textContent     = `${base.length}件`;
     document.getElementById("summaryPaid").textContent      = `${paid.length}件`;
     document.getElementById("summaryPaidAmt").textContent   = fmt(sum(paid));
     document.getElementById("summaryUnpaid").textContent    = `${unpaid.length}件`;

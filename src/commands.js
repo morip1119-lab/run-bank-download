@@ -7,11 +7,13 @@ export function normalizeSpaces(s) {
 }
 
 /**
- * リマインドコマンドのパース
+ * リマインドコマンドのパース（カレンダー登録と同じ並び）
  * 形式:
  *   リマインドして
+ *   ＜件名・内容＞
  *   ＜日時＞
- *   ＜内容＞
+ *
+ * 1行目に続けて件名、2行目以降に日時も可: 「リマインドして 件名」改行「日時」
  *
  * 戻り値: null | { datetimeText: string, message: string }
  */
@@ -27,20 +29,24 @@ export function parseReminderCommand(text) {
 
   const firstLineRest = lines[0].replace(/^リマインドして\s*/, "").trim();
 
-  let datetimeText, message;
+  let message;
+  let datetimeText;
 
   if (firstLineRest.length > 0 && lines.length >= 2) {
-    datetimeText = firstLineRest;
-    message = lines.slice(1).join("\n");
+    message = firstLineRest;
+    datetimeText = lines.slice(1).join(" ");
   } else if (lines.length >= 3) {
+    message = lines[1];
+    datetimeText = lines.slice(2).join(" ");
+  } else if (lines.length === 2) {
+    message = "";
     datetimeText = lines[1];
-    message = lines.slice(2).join("\n");
   } else {
     return null;
   }
 
-  if (!datetimeText || !message) return null;
-  return { datetimeText, message };
+  if (!datetimeText) return null;
+  return { datetimeText, message: message || "リマインド" };
 }
 
 /**

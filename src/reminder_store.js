@@ -22,6 +22,8 @@ export async function addReminder({ platform, chatId, remindAt, message }) {
 /**
  * @returns {Promise<Array<{ id: string, platform: string, chatId: string, remindAt: number, message: string }>>}
  */
+const MAX_FAILURES = 3;
+
 export async function getDueReminders() {
   // sentAt との複合クエリを避けてインデックス不要にする
   const snap = await col
@@ -29,7 +31,21 @@ export async function getDueReminders() {
     .get();
   return snap.docs
     .map((d) => ({ id: d.id, ...d.data() }))
-    .filter((r) => r.sentAt === null || r.sentAt === undefined);
+    .filter((r) => {
+      if (r.sentAt !== null && r.sentAt !== undefined) return false;
+      if ((r.failCount || 0) >= MAX_FAILURES) return false;
+      return true;
+    });
+}
+
+export async function markReminderFailed(id) {
+  const ref = col.doc(id);
+  const doc = await ref.get();
+  const failCount = ((doc.data()?.failCount) || 0) + 1;
+  await ref.update({ failCount, lastFailedAt: Date.now() });
+  if (failCount >= MAX_FAILURES) {
+    console.warn(`[remind] id=${id} が ${MAX_FAILURES} 回失敗したためスキップします`);
+  }
 }
 
 /**

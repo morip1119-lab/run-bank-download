@@ -7,7 +7,7 @@ redirects = []
 [functions."*"]
 
 [build]
-publish = "C:\\Users\\morip\\Projects\\line-secretary-calendar"
+publish = "C:\\Users\\morip\\LIVECREATE Dropbox\\森川卓典\\森川フォルダ\\cursor\\projects\\line-secretary-calendar"
 publishOrigin = "default"
 
 [build.environment]

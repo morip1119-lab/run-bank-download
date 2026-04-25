@@ -16,7 +16,7 @@ spec:
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
-      - image: asia-northeast1-docker.pkg.dev/chirashi-493513/line-secretary/app@sha256:52adcd27d4653de388fd1a05c9a585c77fa41ecae9ae5098e0531fe61e7235d0
+      - image: asia-northeast1-docker.pkg.dev/chirashi-493513/line-secretary/app@sha256:2a3c6da74de3bb217717711fbfe2536f74447c3ae3ca9fc8e257520c5868c7a6
         env:
         - name: LINE_CHANNEL_SECRET
           value: "707714c6cf37bb92c03ef4f2886c4e76"
