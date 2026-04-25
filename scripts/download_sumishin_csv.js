@@ -767,15 +767,24 @@ async function buildDriveAuth() {
   const oAuth2Client = new google.auth.OAuth2(
     client_id, client_secret, GOOGLE_OAUTH_REDIRECT_URI
   );
-  const tokenPath = process.env.GOOGLE_TOKEN_PATH || "token.json";
-  const tokens = JSON.parse(fs.readFileSync(tokenPath, "utf8"));
+  // GitHub Actions では GOOGLE_TOKEN_JSON 環境変数から読む、ローカルは token.json
+  let tokens;
+  if (process.env.GOOGLE_TOKEN_JSON) {
+    tokens = JSON.parse(process.env.GOOGLE_TOKEN_JSON);
+  } else {
+    const tokenPath = process.env.GOOGLE_TOKEN_PATH || "token.json";
+    tokens = JSON.parse(fs.readFileSync(tokenPath, "utf8"));
+  }
   oAuth2Client.setCredentials(tokens);
-  // アクセストークン更新時に token.json を自動書き換え
-  oAuth2Client.on("tokens", (fresh) => {
-    if (fresh.refresh_token) tokens.refresh_token = fresh.refresh_token;
-    Object.assign(tokens, fresh);
-    fs.writeFileSync(tokenPath, JSON.stringify(tokens, null, 2));
-  });
+  // アクセストークン更新時にローカルの token.json を自動書き換え（クラウド実行時はスキップ）
+  if (!process.env.GOOGLE_TOKEN_JSON) {
+    const tokenPath = process.env.GOOGLE_TOKEN_PATH || "token.json";
+    oAuth2Client.on("tokens", (fresh) => {
+      if (fresh.refresh_token) tokens.refresh_token = fresh.refresh_token;
+      Object.assign(tokens, fresh);
+      fs.writeFileSync(tokenPath, JSON.stringify(tokens, null, 2));
+    });
+  }
   return oAuth2Client;
 }
 

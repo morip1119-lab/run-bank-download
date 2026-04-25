@@ -1,0 +1,46 @@
+name: 月次 銀行CSV ダウンロード＆Drive アップロード
+
+on:
+  # 毎月1日 12:00 JST (= 03:00 UTC) に自動実行
+  schedule:
+    - cron: '0 3 1 * *'
+  # GitHubの画面から手動実行も可能
+  workflow_dispatch:
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - name: コードをチェックアウト
+        uses: actions/checkout@v4
+
+      - name: Node.js セットアップ
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: 依存パッケージをインストール
+        run: npm ci
+
+      - name: Playwright ブラウザをインストール
+        run: npx playwright install chromium --with-deps
+
+      - name: CSVダウンロード＆Driveアップロード実行
+        env:
+          SUMISHIN_SBI_LOGIN_ID: ${{ secrets.SUMISHIN_SBI_LOGIN_ID }}
+          SUMISHIN_SBI_PASSWORD: ${{ secrets.SUMISHIN_SBI_PASSWORD }}
+          SUMISHIN_HEADLESS: '1'
+          GOOGLE_CLIENT_SECRET_JSON: ${{ secrets.GOOGLE_CLIENT_SECRET_JSON }}
+          GOOGLE_TOKEN_JSON: ${{ secrets.GOOGLE_TOKEN_JSON }}
+        run: node scripts/download_sumishin_csv.js
+
+      - name: ダウンロードしたCSVを保存（確認用）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: csv-downloads
+          path: downloads/
+          retention-days: 7
