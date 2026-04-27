@@ -242,6 +242,91 @@ export async function registerDirectCalendarEvent({ title, datetimeText }) {
 }
 
 /**
+ * 件名＋日時が一致する primary カレンダーの予定を1件削除する
+ * @param {{ title: string, datetimeText: string }} p
+ */
+export async function deleteDirectCalendarEvent({ title, datetimeText }) {
+  const range = parseDateTimeRange(datetimeText, new Date());
+  if (!range) {
+    return { ok: false, message: "日時を読み取れませんでした。例：４月２２日２０時〜２１時" };
+  }
+  const tz = config.timeZone;
+  const rStart = DateTime.fromJSDate(range.start).setZone(tz);
+  const rEnd   = DateTime.fromJSDate(range.end).setZone(tz);
+  const targetTitle = (title || "").trim();
+  if (!targetTitle) {
+    return { ok: false, message: "件名が空です。カレンダー登録と同じ形式で件名を指定してください。" };
+  }
+
+  let auth;
+  try {
+    auth = loadOAuthClient();
+  } catch (e) {
+    return { ok: false, message: `Google 認証の準備に失敗: ${e.message}` };
+  }
+  const cal = google.calendar({ version: "v3", auth });
+  const dayStart = rStart.startOf("day");
+  const dayEnd   = rStart.endOf("day");
+
+  try {
+    const res = await cal.events.list({
+      calendarId: "primary",
+      timeMin: dayStart.toISO(),
+      timeMax: dayEnd.toISO(),
+      singleEvents: true,
+      orderBy: "startTime",
+    });
+    const items = res.data.items ?? [];
+    const candidates = items.filter((ev) => {
+      if (!ev.id || (ev.summary || "").trim() !== targetTitle) return false;
+      if (!ev.start?.dateTime) return false; // 終日予定は v1 未対応
+      const evStart = DateTime.fromISO(ev.start.dateTime, { zone: tz });
+      const evEnd   = DateTime.fromISO(ev.end.dateTime, { zone: tz });
+      return evStart < rEnd && evEnd > rStart;
+    });
+
+    if (candidates.length === 0) {
+      return {
+        ok: false,
+        message: `「${targetTitle}」で、指定の時間帯に重なる予定が見つかりませんでした。件名（カレンダー上の表記）と日時を確認してください。`,
+      };
+    }
+    if (candidates.length > 1) {
+      candidates.sort(
+        (a, b) =>
+          Math.abs(new Date(a.start.dateTime) - range.start) -
+          Math.abs(new Date(b.start.dateTime) - range.start)
+      );
+    }
+    const ev = candidates[0];
+    await cal.events.delete({ calendarId: "primary", eventId: ev.id });
+    const when = formatRangeJa(
+      new Date(ev.start.dateTime),
+      new Date(ev.end.dateTime),
+      tz
+    );
+    return {
+      ok: true,
+      message: [
+        "Google カレンダーから予定を削除しました。",
+        `件名: ${ev.summary}`,
+        `日時: ${when}`,
+      ].join("\n"),
+    };
+  } catch (e) {
+    const msg = e?.message || String(e);
+    if (msg.includes("invalid_grant") || msg.includes("Invalid grant")) {
+      return {
+        ok: false,
+        message:
+          "Google のトークンが無効です。npm run google-auth 後、Secret を更新してください。",
+      };
+    }
+    return { ok: false, message: `カレンダー削除に失敗しました: ${msg}` };
+  }
+}
+
+/**
  * @param {object} p
  * @param {string} p.summary
  * @param {string} [p.description]

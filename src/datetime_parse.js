@@ -17,11 +17,22 @@ function toHalfWidthDigits(str) {
 }
 
 /**
+ * LINE/IME が挿入するゼロ幅文字を除去（日と時の間に入ると日時パースが null になる）
+ */
+export function normalizeParseText(str) {
+  if (!str) return "";
+  return toHalfWidthDigits(str)
+    .replace(/[\u200B-\u200D\uFEFF\u2060]/g, "")
+    .replace(/\u3000/g, " ")
+    .trim();
+}
+
+/**
  * 「4月20日 20時」「4/20 20:00」などを解釈。失敗時は null。
  * 解釈の基準タイムゾーンは `config.timeZone`（既定: Asia/Tokyo）。
  */
 export function parseDateTimeRange(text, referenceDate = new Date()) {
-  const t = toHalfWidthDigits(text).trim();
+  const t = normalizeParseText(text);
   if (!t) return null;
 
   const jp = tryJapanesePattern(t, referenceDate);

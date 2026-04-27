@@ -1,0 +1,53 @@
+# ─── 動画TTP 自動編集ツール 設定ファイル ────────────────────────
+# ※ URL を変更するだけで別の動画に対応できます
+
+# 参考動画: 構成・ナレーション台本の参照元
+reference_video: "https://youtu.be/-fO1u4gmTJU?si=78R9YfIdsnzBX0tv"
+
+# 素材動画: 実際に使用する映像ソース
+source_video: "https://www.youtube.com/watch?v=ohzAXdrovCI"
+
+# 複製コンテンツ回避用クリップ（まとめ箇所の直前に挿入される）
+avoid_clips:
+  - url: "https://www.youtube.com/watch?v=W7PgqMpi9JY"
+    clips:
+      - { start: "0:14",  end: "0:22"  }
+      - { start: "1:55",  end: "2:03"  }
+      - { start: "2:07",  end: "2:15"  }
+      - { start: "2:20",  end: "2:45"  }
+      - { start: "3:02",  end: "3:24"  }
+      - { start: "3:53",  end: "3:57"  }
+      - { start: "5:43",  end: "5:46"  }
+  - url: "https://www.youtube.com/watch?v=WRCFSEL80wY"
+    clips:
+      - { start: "7:02:51", end: "7:07:27" }
+
+# マッチング設定
+matching:
+  whisper_model: "medium"       # tiny / base / small / medium / large
+                                # medium が精度・速度のバランス良し
+  similarity_threshold: 0.75   # 類似度のしきい値（0〜1）。下げると多くヒット、上げると精度重視
+  merge_gap_seconds: 3.0       # この秒数以内の連続マッチをひとまとめにする
+  min_clip_duration: 2.0       # この秒数未満のクリップは除外
+  context_window: 2            # マッチング精度向上のため前後N文を文脈として使用
+  summary_insert_before_last: 2 # 複製回避素材を末尾からN番目のクリップの前に挿入
+
+# VOICEVOX 設定（波音リツ）
+voicevox:
+  enabled: true
+  speaker_id: 9                # 9 = 波音リツ ノーマル
+  host: "http://localhost:50021"
+  speed: 1.0                   # 読み上げ速度（0.5〜2.0）
+
+# OpenAI 設定（セマンティックマッチングに使用）
+openai:
+  api_key_env: "OPENAI_API_KEY"       # 環境変数名（.env ファイルに書いてもOK）
+  embedding_model: "text-embedding-3-small"
+
+# 出力設定
+# ※ Dropbox/OneDrive フォルダ内だとファイルロックエラーが起きるため
+#    デスクトップなど同期フォルダの外を指定してください
+output:
+  dir: "~/Desktop/video-ttp-output"
+  filename: "final_video.mp4"
+  video_quality: "medium"      # low / medium / high

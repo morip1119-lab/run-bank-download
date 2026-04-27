@@ -5,6 +5,7 @@ import {
   parseFixCommand,
   parseAvailabilityCommand,
   parseDirectCalendarCommand,
+  parseDirectCalendarDeleteCommand,
   parseReminderCommand,
   parseInvoiceCommand,
   parseDriveSaveCommand,
@@ -15,7 +16,13 @@ import {
   formatDraftMessage,
   applyCorrectionInstruction,
 } from "./draft_service.js";
-import { insertPrimaryCalendarEvent, getFreeSlots, registerDirectCalendarEvent, buildCalendarTemplateUrl } from "./calendar_service.js";
+import {
+  insertPrimaryCalendarEvent,
+  getFreeSlots,
+  registerDirectCalendarEvent,
+  deleteDirectCalendarEvent,
+  buildCalendarTemplateUrl,
+} from "./calendar_service.js";
 import { createInvoice } from "./invoice_service.js";
 import { saveToDrive, resolveCompanyKey, resolveYearMonth, listDriveCompanies } from "./drive_service.js";
 import { sendMessage, parseChatworkBody } from "./chatwork_client.js";
@@ -95,7 +102,14 @@ export async function handleChatworkMessage(event) {
     return;
   }
 
-  // ─── ダイレクトカレンダー登録 ────────────────────────────────
+  // ─── ダイレクトカレンダー削除／登録 ─────────────────────────
+  const delCal = parseDirectCalendarDeleteCommand(commandText);
+  if (delCal) {
+    const result = await deleteDirectCalendarEvent(delCal);
+    await sendMessage(roomId, result.message);
+    return;
+  }
+
   const direct = parseDirectCalendarCommand(commandText);
   if (direct) {
     const result = await registerDirectCalendarEvent(direct);

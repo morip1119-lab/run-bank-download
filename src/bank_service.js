@@ -1,6 +1,8 @@
 import { google } from "googleapis";
 import { DateTime } from "luxon";
 import { loadOAuthClient } from "./calendar_service.js";
+import { config } from "./config.js";
+import { parseBankCsv } from "./payment_service.js";
 
 const BANK_FROM    = "post_master@netbk.co.jp";
 const TARGET_AMOUNTS = [12800, 50000];
@@ -46,9 +48,9 @@ function parseDepositEmail(message) {
   return { amount, depositDate, senderName };
 }
 
-// ── 昨日の入金メールを検索して対象金額のみ返す ──────────────
+// ── 昨日の入金メールを検索して対象金額のみ返す（Gmail） ─────
 
-export async function checkYesterdayBankDeposits() {
+async function checkYesterdayBankDepositsFromGmail() {
   const gmail = getGmail();
   const yesterday = DateTime.now().setZone(TZ).minus({ days: 1 });
 
@@ -77,10 +79,74 @@ export async function checkYesterdayBankDeposits() {
   return deposits;
 }
 
+// ── 昨日の MF CSV から対象入金を返す（Playwright 必須） ────────
+
+async function checkYesterdayBankDepositsFromMf() {
+  const yesterday = DateTime.now().setZone(TZ).minus({ days: 1 });
+  const ymd = yesterday.toISODate();
+  console.log(`[bank] MF CSV 取得: ${ymd}（グループ: ${config.bankCheckMfGroup || "（未指定）"})`);
+
+  const { fetchMoneyForwardCsv, fetchMoneyForwardCsvByAccount } = await import(
+    "./moneyforward_scraper.js"
+  );
+
+  let csvText;
+  if (config.bankCheckMfGroup) {
+    const byAccount = await fetchMoneyForwardCsvByAccount({
+      from: ymd,
+      to: ymd,
+      headless: true,
+      accountGroupMap: { _bank: config.bankCheckMfGroup },
+    });
+    csvText = byAccount._bank;
+  } else {
+    csvText = await fetchMoneyForwardCsv({ from: ymd, to: ymd, headless: true });
+  }
+
+  if (!csvText || !String(csvText).trim()) {
+    console.warn("[bank] MF: CSV が空、または取得失敗");
+    return [];
+  }
+
+  const rows = parseBankCsv(csvText);
+  const deposits = [];
+  for (const t of rows) {
+    if (t.date !== ymd) continue;
+    if (!TARGET_AMOUNTS.includes(t.amount)) continue;
+    console.log(
+      `[bank] MF row: ¥${t.amount} / ${t.date} / 内容: ${(t.description || "").slice(0, 80)}`
+    );
+    deposits.push({
+      amount: t.amount,
+      depositDate: t.date,
+      senderName: t.description?.trim() || "（内容のみ・不明）",
+    });
+  }
+  return deposits;
+}
+
+/**
+ * 昨日の入金（指定金額のみ）を返す
+ * `BANK_CHECK_SOURCE=gmail`（既定）: 住信SBIの通知メール
+ * `BANK_CHECK_SOURCE=mf`: マネーフォワード ME（CSV スクレイプ）
+ */
+export async function checkYesterdayBankDeposits() {
+  const src = config.bankCheckSource;
+  if (src === "mf" || src === "moneyforward" || src === "me") {
+    return checkYesterdayBankDepositsFromMf();
+  }
+  return checkYesterdayBankDepositsFromGmail();
+}
+
 // ── Chatwork 通達メッセージを生成 ───────────────────────────
 
 export function buildDepositMessage(deposits) {
-  const lines = ["[toall]", "💰 入金通知（住信SBIネット銀行）", ""];
+  const src = config.bankCheckSource;
+  const fromLabel =
+    src === "mf" || src === "moneyforward" || src === "me"
+      ? "マネーフォワード ME"
+      : "住信SBIネット銀行";
+  const lines = ["[toall]", `💰 入金通知（${fromLabel}）`, ""];
   for (const dep of deposits) {
     lines.push(
       `【¥${dep.amount.toLocaleString("ja-JP")}】`,

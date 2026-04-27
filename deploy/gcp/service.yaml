@@ -16,7 +16,7 @@ spec:
       containerConcurrency: 80
       timeoutSeconds: 300
       containers:
-      - image: asia-northeast1-docker.pkg.dev/chirashi-493513/line-secretary/app@sha256:2a3c6da74de3bb217717711fbfe2536f74447c3ae3ca9fc8e257520c5868c7a6
+      - image: asia-northeast1-docker.pkg.dev/chirashi-493513/line-secretary/app@sha256:5fd572b94255a3e1a1a8e08c55700994ca35cc79c4602986e3210c6b3c6a3237
         env:
         - name: LINE_CHANNEL_SECRET
           value: "707714c6cf37bb92c03ef4f2886c4e76"
@@ -68,10 +68,16 @@ spec:
           value: "1776910834001"
         - name: BANK_NOTIFY_ROOM_ID
           value: "379316021"
+        # 入金チェック: gmail（住信SBI通知メール）| mf（マネーフォワードME・要 MONEYFORWARD_* 等）
+        - name: BANK_CHECK_SOURCE
+          value: "gmail"
+        - name: MF_PROFILE_DIR
+          value: "/data/mf_profile"
         resources:
           limits:
             cpu: '1'
-            memory: 512Mi
+            # MF 利用時は Chromium のため 1Gi 推奨（gmail のみなら 512Mi でも可）
+            memory: 1Gi
   traffic:
   - percent: 100
     latestRevision: true

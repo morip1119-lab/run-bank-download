@@ -1,9 +1,59 @@
+import { normalizeParseText, parseDateTimeRange } from "./datetime_parse.js";
+
 /** 全角スペースを半角1つにし、前後空白除去 */
 export function normalizeSpaces(s) {
   return s
     .trim()
     .replace(/\u3000/g, " ")
     .replace(/\s+/g, " ");
+}
+
+const nowRef = () => new Date();
+
+/**
+ * 1行分の文字列を「日時が解釈できる先頭区間」と「残り＝件名」に分ける
+ * 例: "5月2日12時 イベント請求書作成" → 日時=5月2日12時、件名=イベント請求書作成
+ */
+function splitOneLineDateTimeAndTitle(rest) {
+  const tokens = rest.split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+  // 短い候補から試す（全体が chrono に誤マッチして「日時+件名」ごと通るのを防ぐ）
+  for (let i = 1; i <= tokens.length; i++) {
+    const candidate = tokens.slice(0, i).join(" ");
+    if (parseDateTimeRange(candidate, nowRef())) {
+      const title = tokens.slice(i).join(" ").trim();
+      return { datetimeText: candidate, title: title || "打合せ" };
+    }
+  }
+  return null;
+}
+
+/**
+ * 2行（または1行目の残り+続き行1つ）のどちらが日時かを判定
+ * 従来は「1行目=件名・2行目=日時」固定だったが、
+ * 「1行目に日付・2行目に件名」の順でも送られることがある
+ */
+function disambiguateTwoLineParts(a, b) {
+  const pa = parseDateTimeRange(a, nowRef());
+  const pb = parseDateTimeRange(b, nowRef());
+  if (pa && !pb) {
+    return { datetimeText: a, title: (b || "").trim() || "打合せ" };
+  }
+  if (pb && !pa) {
+    return { datetimeText: b, title: (a || "").trim() || "打合せ" };
+  }
+  if (pa && pb) {
+    const aDate = /月|\/|今|明|来/.test(a);
+    const bDate = /月|\/|今|明|来/.test(b);
+    if (aDate && !bDate) {
+      return { datetimeText: a, title: (b || "").trim() || "打合せ" };
+    }
+    if (bDate && !aDate) {
+      return { datetimeText: b, title: (a || "").trim() || "打合せ" };
+    }
+    return { datetimeText: b, title: (a || "").trim() || "打合せ" };
+  }
+  return { datetimeText: b, title: (a || "").trim() || "打合せ" };
 }
 
 /**
@@ -18,9 +68,7 @@ export function normalizeSpaces(s) {
  * 戻り値: null | { datetimeText: string, message: string }
  */
 export function parseReminderCommand(text) {
-  const lines = text
-    .trim()
-    .replace(/\u3000/g, " ")
+  const lines = normalizeParseText(text)
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
@@ -59,9 +107,7 @@ export function parseReminderCommand(text) {
  * 戻り値: null | { title: string, datetimeText: string }
  */
 export function parseDirectCalendarCommand(text) {
-  const lines = text
-    .trim()
-    .replace(/\u3000/g, " ")
+  const lines = normalizeParseText(text)
     .split(/\r?\n/)
     .map((l) => l.trim())
     .filter((l) => l.length > 0);
@@ -74,23 +120,99 @@ export function parseDirectCalendarCommand(text) {
   let title, datetimeText;
 
   if (firstLineRest.length > 0 && lines.length >= 2) {
-    // 「カレンダー登録して テスト打ち合わせ\n日時」
-    title = firstLineRest;
-    datetimeText = lines.slice(1).join(" ");
+    // 「…して 5月2日12時\nイベント」や「…して 件名\n日時」のどちらにも対応
+    const sub = disambiguateTwoLineParts(
+      firstLineRest,
+      lines.slice(1).join(" ")
+    );
+    title = sub.title;
+    datetimeText = sub.datetimeText;
   } else if (lines.length >= 3) {
-    // 「カレンダー登録して\n件名\n日時」
-    title = lines[1];
-    datetimeText = lines.slice(2).join(" ");
+    // 「カレンダー登録して\n5月2日12時\nイベント」or「…\n件名\n日時」
+    const sub = disambiguateTwoLineParts(
+      lines[1],
+      lines.slice(2).join(" ")
+    );
+    title = sub.title;
+    datetimeText = sub.datetimeText;
   } else if (lines.length === 2) {
-    // 「カレンダー登録して\n件名＋日時」→ 件名なし、日時として扱う
-    title = "";
-    datetimeText = lines[1];
+    // 2行: 1行目が「カレンダー登録して」のみ → 2行目に日時+件名が同居している場合あり
+    const sub = splitOneLineDateTimeAndTitle(lines[1]);
+    if (sub) {
+      title = sub.title;
+      datetimeText = sub.datetimeText;
+    } else {
+      title = "";
+      datetimeText = lines[1];
+    }
+  } else if (lines.length === 1 && firstLineRest.length > 0) {
+    // 「カレンダー登録して 5月2日12時 イベント請求書作成」1行で完結
+    const sub = splitOneLineDateTimeAndTitle(firstLineRest);
+    if (!sub) return null;
+    title = sub.title;
+    datetimeText = sub.datetimeText;
   } else {
     return null;
   }
 
   if (!datetimeText) return null;
   return { title: title || "打合せ", datetimeText };
+}
+
+/**
+ * ダイレクトカレンダー削除（件名・日時の形式は登録と同じ）
+ *   カレンダー削除して
+ *   ＜件名＞
+ *   ＜日時＞
+ */
+export function parseDirectCalendarDeleteCommand(text) {
+  const lines = normalizeParseText(text)
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  if (!lines[0] || !/^カレンダー削除して/.test(lines[0])) return null;
+
+  const firstLineRest = lines[0].replace(/^カレンダー削除して\s*/, "").trim();
+
+  let title;
+  let datetimeText;
+
+  if (firstLineRest.length > 0 && lines.length >= 2) {
+    const sub = disambiguateTwoLineParts(
+      firstLineRest,
+      lines.slice(1).join(" ")
+    );
+    title = sub.title;
+    datetimeText = sub.datetimeText;
+  } else if (lines.length >= 3) {
+    const sub = disambiguateTwoLineParts(
+      lines[1],
+      lines.slice(2).join(" ")
+    );
+    title = sub.title;
+    datetimeText = sub.datetimeText;
+  } else if (lines.length === 2) {
+    const sub = splitOneLineDateTimeAndTitle(lines[1]);
+    if (sub) {
+      title = sub.title;
+      datetimeText = sub.datetimeText;
+    } else {
+      title = "";
+      datetimeText = lines[1];
+    }
+  } else if (lines.length === 1 && firstLineRest.length > 0) {
+    const sub = splitOneLineDateTimeAndTitle(firstLineRest);
+    if (!sub) return null;
+    title = sub.title;
+    datetimeText = sub.datetimeText;
+  } else {
+    return null;
+  }
+
+  if (!datetimeText) return null;
+  if (!(title || "").trim()) return null;
+  return { title: title.trim(), datetimeText };
 }
 
 /**

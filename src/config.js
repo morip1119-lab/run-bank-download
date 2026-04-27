@@ -42,6 +42,15 @@ export const config = {
   misocaTokenPath: process.env.MISOCA_TOKEN_PATH || "misoca_token.json",
   /** 銀行入金通知先 Chatwork ルームID */
   bankNotifyRoomId: process.env.BANK_NOTIFY_ROOM_ID || "",
+  /**
+   * 入金チェックのデータ元: "gmail"（住信SBIの通知メール）| "mf"（マネーフォワード MEのCSV）
+   * MF利用時は MONEYFORWARD_EMAIL / MONEYFORWARD_PASSWORD と MF プロファイル（初回は npm run mf-login）が必要
+   */
+  bankCheckSource: (process.env.BANK_CHECK_SOURCE || "gmail").toLowerCase(),
+  /**
+   * BANK_CHECK_SOURCE=mf のとき、家計簿側で切り替えるグループ名（空なら「デフォルト」扱いで取得）
+   */
+  bankCheckMfGroup: (process.env.BANK_CHECK_MF_GROUP || "").trim(),
   /** 支払い管理スプレッドシート ID */
   paymentSheetId: process.env.PAYMENT_SHEET_ID || "",
   /** 受信請求書 PDF をアップロードする Google Drive フォルダ ID */

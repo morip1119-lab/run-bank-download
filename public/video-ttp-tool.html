@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>動画TTPツール 構想イメージ</title>
+  <title>動画TTPツール 構想イメージ v2</title>
   <style>
     :root {
       --primary: #6C63FF;
@@ -25,7 +25,6 @@
       line-height: 1.7;
     }
 
-    /* ─── Header ─── */
     .hero {
       background: linear-gradient(135deg, #1E1E2E 0%, #3B2D8F 50%, #6C63FF 100%);
       color: #fff;
@@ -42,6 +41,17 @@
       letter-spacing: 0.08em;
       margin-bottom: 16px;
     }
+    .hero .version {
+      display: inline-block;
+      background: var(--accent);
+      color: #0a3d2e;
+      border-radius: 999px;
+      padding: 2px 12px;
+      font-size: 11px;
+      font-weight: 800;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
     .hero h1 {
       font-size: clamp(24px, 5vw, 40px);
       font-weight: 800;
@@ -51,16 +61,11 @@
     .hero p {
       font-size: 16px;
       opacity: 0.8;
-      max-width: 540px;
+      max-width: 580px;
       margin: 0 auto;
     }
 
-    /* ─── Layout ─── */
-    .container {
-      max-width: 900px;
-      margin: 0 auto;
-      padding: 0 20px;
-    }
+    .container { max-width: 900px; margin: 0 auto; padding: 0 20px; }
     section { padding: 56px 0 32px; }
     h2.section-title {
       font-size: 22px;
@@ -73,117 +78,80 @@
     h2.section-title::before {
       content: '';
       display: inline-block;
-      width: 4px;
-      height: 24px;
+      width: 4px; height: 24px;
       background: var(--primary);
       border-radius: 4px;
     }
 
-    /* ─── Goal Card ─── */
-    .goal-grid {
+    /* ─── Summary cards ─── */
+    .summary-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 16px;
     }
-    .goal-card {
+    .summary-card {
       background: var(--white);
       border-radius: 16px;
-      padding: 24px 20px;
+      padding: 22px 20px;
       border: 1px solid var(--border);
       box-shadow: 0 2px 12px rgba(108,99,255,0.06);
-      position: relative;
-      overflow: hidden;
     }
-    .goal-card::before {
-      content: '';
-      position: absolute;
-      top: 0; left: 0; right: 0;
-      height: 4px;
-    }
-    .goal-card.main::before { background: var(--primary); }
-    .goal-card.sub::before  { background: var(--warn); }
-    .goal-card .icon {
-      font-size: 32px;
-      margin-bottom: 12px;
-    }
-    .goal-card h3 {
-      font-size: 15px;
-      font-weight: 700;
-      margin-bottom: 8px;
-    }
-    .goal-card p {
-      font-size: 13.5px;
-      color: var(--gray);
-    }
-    .goal-card .tag {
-      display: inline-block;
-      margin-top: 12px;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .tag.primary { background: var(--primary-light); color: var(--primary); }
-    .tag.warn    { background: #FFF4E5; color: #C87000; }
+    .summary-card .icon { font-size: 28px; margin-bottom: 10px; }
+    .summary-card h3 { font-size: 13px; color: var(--gray); margin-bottom: 6px; font-weight: 600; }
+    .summary-card p  { font-size: 14px; font-weight: 700; }
 
-    /* ─── Input/Output ─── */
-    .io-grid {
+    /* ─── Core problem ─── */
+    .problem-box {
+      background: #FFF5F5;
+      border: 1.5px solid #FCA5A5;
+      border-radius: 16px;
+      padding: 28px 28px 24px;
+    }
+    .problem-box h3 {
+      font-size: 17px;
+      font-weight: 700;
+      color: #B91C1C;
+      margin-bottom: 16px;
+      display: flex; align-items: center; gap: 8px;
+    }
+    .problem-list {
       display: grid;
-      grid-template-columns: 1fr auto 1fr;
+      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px;
+    }
+    .problem-item {
+      background: #fff;
+      border: 1px solid #FCA5A5;
+      border-radius: 12px;
+      padding: 14px 16px;
+    }
+    .problem-item .p-icon { font-size: 20px; margin-bottom: 6px; }
+    .problem-item p { font-size: 13px; color: #7F1D1D; }
+
+    /* ─── Solution comparison ─── */
+    .compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
       gap: 20px;
-      align-items: start;
     }
-    .io-arrow {
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      padding-top: 32px;
-      font-size: 28px;
-      color: var(--primary);
-    }
-    .io-box {
-      background: var(--white);
-      border: 1px solid var(--border);
+    .compare-card {
       border-radius: 16px;
       overflow: hidden;
+      border: 1px solid var(--border);
     }
-    .io-box .io-header {
-      padding: 12px 20px;
+    .compare-card .cc-header {
+      padding: 14px 20px;
       font-size: 13px;
       font-weight: 700;
-      letter-spacing: 0.05em;
     }
-    .io-box.input .io-header  { background: #EEF0FF; color: var(--primary); }
-    .io-box.output .io-header { background: #E8FDF5; color: #1A7A5E; }
-    .io-box ul {
-      list-style: none;
-      padding: 16px 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-    .io-box li {
-      font-size: 13.5px;
-      display: flex;
-      align-items: flex-start;
-      gap: 8px;
-      color: var(--dark);
-    }
-    .io-box li .dot {
-      width: 8px; height: 8px;
-      border-radius: 50%;
-      margin-top: 5px;
-      flex-shrink: 0;
-    }
-    .input  .dot { background: var(--primary); }
-    .output .dot { background: var(--accent); }
+    .compare-card.bad  .cc-header { background: #FEE2E2; color: #B91C1C; }
+    .compare-card.good .cc-header { background: #E8FDF5; color: #065F46; }
+    .compare-card ul { background: var(--white); list-style: none; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .compare-card li { font-size: 13.5px; display: flex; align-items: flex-start; gap: 8px; }
+    .compare-card li .bullet { font-size: 14px; flex-shrink: 0; margin-top: 1px; }
 
     /* ─── Pipeline ─── */
-    .pipeline {
-      display: flex;
-      flex-direction: column;
-      gap: 0;
-    }
+    .pipeline { display: flex; flex-direction: column; gap: 0; }
     .step {
       display: grid;
       grid-template-columns: 56px 1fr;
@@ -192,18 +160,14 @@
     }
     .step:not(:last-child) .step-line {
       position: absolute;
-      left: 27px;
-      top: 56px;
-      bottom: -8px;
+      left: 27px; top: 56px; bottom: -8px;
       width: 2px;
       background: linear-gradient(to bottom, var(--primary), var(--border));
       z-index: 0;
     }
     .step-num {
       width: 56px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
+      display: flex; flex-direction: column; align-items: center;
       padding-top: 16px;
       z-index: 1;
     }
@@ -212,11 +176,8 @@
       border-radius: 50%;
       background: var(--primary);
       color: #fff;
-      font-size: 15px;
-      font-weight: 800;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      font-size: 15px; font-weight: 800;
+      display: flex; align-items: center; justify-content: center;
       box-shadow: 0 0 0 4px var(--primary-light);
     }
     .step-body {
@@ -229,118 +190,81 @@
       box-shadow: 0 2px 8px rgba(0,0,0,0.04);
     }
     .step-body h3 {
-      font-size: 15px;
-      font-weight: 700;
+      font-size: 15px; font-weight: 700;
       margin-bottom: 6px;
-      display: flex;
-      align-items: center;
-      gap: 8px;
+      display: flex; align-items: center; gap: 8px;
     }
-    .step-body p {
-      font-size: 13.5px;
-      color: var(--gray);
-      margin-bottom: 8px;
-    }
+    .step-body p { font-size: 13.5px; color: var(--gray); margin-bottom: 8px; }
+    .step-tools { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
     .step-tool {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      background: #F3F4F6;
-      border-radius: 6px;
-      padding: 3px 10px;
-      font-size: 12px;
-      color: var(--gray);
+      display: inline-flex; align-items: center; gap: 4px;
+      background: #F3F4F6; border-radius: 6px;
+      padding: 3px 10px; font-size: 12px; color: var(--gray);
       font-family: 'Courier New', monospace;
     }
     .auto-badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 2px 10px;
-      border-radius: 999px;
-      font-size: 11px;
-      font-weight: 700;
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 10px; border-radius: 999px;
+      font-size: 11px; font-weight: 700;
     }
     .auto-badge.full   { background: #E8FDF5; color: #1A7A5E; }
     .auto-badge.semi   { background: #FFF4E5; color: #C87000; }
-    .auto-badge.manual { background: #FEE2E2; color: #B91C1C; }
 
-    /* ─── Automation Summary ─── */
-    .auto-summary {
+    /* ─── Highlight step (core) ─── */
+    .step-body.highlight {
+      border-color: var(--primary);
+      background: var(--primary-light);
+    }
+    .step-body.highlight p { color: #4B40CC; }
+
+    /* ─── IO ─── */
+    .io-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 16px;
-      margin-top: 8px;
+      grid-template-columns: 1fr auto 1fr;
+      gap: 20px; align-items: start;
     }
-    .auto-card {
-      border-radius: 16px;
-      padding: 20px 16px;
-      text-align: center;
-    }
+    .io-arrow { display: flex; align-items: center; justify-content: center; padding-top: 32px; font-size: 28px; color: var(--primary); }
+    .io-box { background: var(--white); border: 1px solid var(--border); border-radius: 16px; overflow: hidden; }
+    .io-box .io-header { padding: 12px 20px; font-size: 13px; font-weight: 700; }
+    .io-box.input  .io-header { background: #EEF0FF; color: var(--primary); }
+    .io-box.output .io-header { background: #E8FDF5; color: #1A7A5E; }
+    .io-box ul { list-style: none; padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; }
+    .io-box li { font-size: 13.5px; display: flex; align-items: flex-start; gap: 8px; }
+    .io-box li .dot { width: 8px; height: 8px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; }
+    .input  .dot { background: var(--primary); }
+    .output .dot { background: var(--accent); }
+
+    /* ─── Automation summary ─── */
+    .auto-summary { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .auto-card { border-radius: 16px; padding: 20px 16px; text-align: center; }
     .auto-card.full   { background: #E8FDF5; border: 1px solid #A7F3D0; }
     .auto-card.semi   { background: #FFF4E5; border: 1px solid #FCD34D; }
-    .auto-card.manual { background: #FEE2E2; border: 1px solid #FCA5A5; }
+    .auto-card.manual { background: #F3F4F6; border: 1px solid #D1D5DB; }
     .auto-card .num   { font-size: 36px; font-weight: 800; margin-bottom: 4px; }
     .auto-card.full   .num { color: #059669; }
     .auto-card.semi   .num { color: #D97706; }
-    .auto-card.manual .num { color: #DC2626; }
+    .auto-card.manual .num { color: #6B7280; }
     .auto-card .label { font-size: 13px; font-weight: 600; }
     .auto-card .sub   { font-size: 12px; color: var(--gray); margin-top: 6px; }
 
-    /* ─── Tech Stack ─── */
-    .tech-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-      gap: 12px;
-    }
-    .tech-item {
-      background: var(--white);
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 16px;
-      display: flex;
-      align-items: center;
-      gap: 12px;
-    }
-    .tech-icon {
-      width: 40px; height: 40px;
-      border-radius: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 18px;
-      flex-shrink: 0;
-    }
+    /* ─── Tech ─── */
+    .tech-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px; }
+    .tech-item { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; align-items: center; gap: 12px; }
+    .tech-icon { width: 40px; height: 40px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 18px; flex-shrink: 0; }
     .tech-item h4 { font-size: 13px; font-weight: 700; }
     .tech-item p  { font-size: 12px; color: var(--gray); }
 
-    /* ─── Note / Caution ─── */
-    .note {
-      background: #FFFBEB;
-      border: 1px solid #FDE68A;
-      border-radius: 12px;
-      padding: 16px 20px;
-      font-size: 13.5px;
-      display: flex;
-      gap: 10px;
-      align-items: flex-start;
-    }
+    /* ─── Note ─── */
+    .note { background: #FFFBEB; border: 1px solid #FDE68A; border-radius: 12px; padding: 16px 20px; font-size: 13.5px; display: flex; gap: 10px; align-items: flex-start; }
     .note .note-icon { font-size: 18px; flex-shrink: 0; }
-    .note ul { list-style: disc; padding-left: 16px; color: var(--dark); }
+    .note ul { list-style: disc; padding-left: 16px; }
     .note ul li { margin-bottom: 4px; }
 
-    /* ─── Footer ─── */
-    footer {
-      margin-top: 64px;
-      padding: 32px 24px;
-      text-align: center;
-      font-size: 13px;
-      color: var(--gray);
-      border-top: 1px solid var(--border);
-    }
+    footer { margin-top: 64px; padding: 32px 24px; text-align: center; font-size: 13px; color: var(--gray); border-top: 1px solid var(--border); }
 
     @media (max-width: 640px) {
-      .io-grid  { grid-template-columns: 1fr; }
+      .compare-grid { grid-template-columns: 1fr; }
+      .io-grid { grid-template-columns: 1fr; }
       .io-arrow { display: none; }
       .auto-summary { grid-template-columns: 1fr; }
     }
@@ -348,52 +272,104 @@
 </head>
 <body>
 
-<!-- ─── Hero ─── -->
+<!-- Hero -->
 <div class="hero">
-  <div class="badge">🎬 ツール構想イメージ</div>
+  <div class="badge">🎬 ツール構想イメージ <span class="version">v2 更新版</span></div>
   <h1>動画TTP 自動編集ツール</h1>
-  <p>参考動画を元に、ボイス差し替え・クリップ結合・複製回避素材の挿入を<br>半自動で処理する編集パイプラインの設計案</p>
+  <p>「参考動画と素材動画を照らし合わせて、対応する箇所を正確に抽出・結合する」<br>AIパイプラインの設計案</p>
 </div>
 
 <div class="container">
 
-  <!-- ─── Goal ─── -->
+  <!-- 要件整理 -->
   <section>
-    <h2 class="section-title">作りたいもの</h2>
-    <div class="goal-grid">
-      <div class="goal-card main">
+    <h2 class="section-title">確認済み要件</h2>
+    <div class="summary-grid">
+      <div class="summary-card">
         <div class="icon">🎯</div>
-        <h3>最優先ゴール</h3>
-        <p>TTP参考動画と同じ構成・内容で、<strong>素材動画から該当箇所だけを繋いだ動画</strong>を完成させる。ナレーション音声は指定のボイスに自動差し替え。</p>
-        <span class="tag primary">メインゴール</span>
+        <h3>使用する映像</h3>
+        <p>素材動画のみ使用<br>（参考動画の映像は使わない）</p>
       </div>
-      <div class="goal-card sub">
-        <div class="icon">🛡️</div>
-        <h3>複製コンテンツ回避</h3>
-        <p>指定した2つの素材から特定タイムスタンプのクリップを切り出し、<strong>まとめ箇所の直前</strong>に自動で繋げる。</p>
-        <span class="tag warn">おまけ機能</span>
+      <div class="summary-card">
+        <div class="icon">📋</div>
+        <h3>参考動画の役割</h3>
+        <p>「どの箇所を・どの順番で」<br>使うかの構成参照のみ</p>
       </div>
-      <div class="goal-card sub" style="border-top-color: transparent;">
+      <div class="summary-card">
         <div class="icon">🗣️</div>
-        <h3>指定ボイス</h3>
-        <p>文字起こしされたスクリプトを<strong>VOICEVOX：波音リツ</strong>（Voiced by CoeFont.cloud）で音声合成して差し替え。</p>
-        <span class="tag primary">音声合成</span>
+        <h3>ナレーション</h3>
+        <p>VOICEVOX 波音リツ<br>（Voiced by CoeFont）</p>
+      </div>
+      <div class="summary-card">
+        <div class="icon">🛡️</div>
+        <h3>複製回避素材</h3>
+        <p>まとめ箇所の直前に<br>2クリップを自動挿入</p>
       </div>
     </div>
   </section>
 
-  <!-- ─── Input/Output ─── -->
+  <!-- 現状の課題 -->
+  <section>
+    <h2 class="section-title">現状のAIツールの問題点</h2>
+    <div class="problem-box">
+      <h3>⚠️ 既存ツールがうまくいかない理由</h3>
+      <div class="problem-list">
+        <div class="problem-item">
+          <div class="p-icon">🔁</div>
+          <p>同じ箇所が<strong>3回ヒット</strong>してしまう（重複）</p>
+        </div>
+        <div class="problem-item">
+          <div class="p-icon">✂️</div>
+          <p>ひと続きの会話が<strong>細切れの秒数</strong>に分割される</p>
+        </div>
+        <div class="problem-item">
+          <div class="p-icon">📐</div>
+          <p>指定範囲が<strong>互いに重複</strong>してしまっている</p>
+        </div>
+        <div class="problem-item">
+          <div class="p-icon">🚫</div>
+          <p>本編で<strong>使われていない箇所</strong>が指定に含まれる</p>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top: 20px;">
+      <div class="compare-grid">
+        <div class="compare-card bad">
+          <div class="cc-header">❌ 既存ツールのアプローチ（精度が低い）</div>
+          <ul>
+            <li><span class="bullet">✗</span>テキストの「文字列一致」だけで判定</li>
+            <li><span class="bullet">✗</span>1文・1センテンス単位で細かくマッチング</li>
+            <li><span class="bullet">✗</span>前後の文脈を考慮しない</li>
+            <li><span class="bullet">✗</span>重複・矛盾のチェックなし</li>
+            <li><span class="bullet">✗</span>「使われていない箇所」の除外できない</li>
+          </ul>
+        </div>
+        <div class="compare-card good">
+          <div class="cc-header">✅ 改善アプローチ（精度が高い）</div>
+          <ul>
+            <li><span class="bullet">✓</span>文の「意味・文脈」で類似度を計算</li>
+            <li><span class="bullet">✓</span>近い箇所は自動でひとつのまとまりに統合</li>
+            <li><span class="bullet">✓</span>前後の文脈も含めて評価</li>
+            <li><span class="bullet">✓</span>重複・重なりを自動除去</li>
+            <li><span class="bullet">✓</span>信頼スコアで低精度ヒットを除外</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 入力と出力 -->
   <section>
     <h2 class="section-title">入力と出力</h2>
     <div class="io-grid">
       <div class="io-box input">
         <div class="io-header">INPUT（入力するもの）</div>
         <ul>
-          <li><span class="dot"></span>TTP参考動画のURL（構成・スクリプトの参照元）</li>
-          <li><span class="dot"></span>素材動画のURL（実際に使用する映像）</li>
+          <li><span class="dot"></span><strong>参考動画URL</strong>（構成・順番の参照元）</li>
+          <li><span class="dot"></span><strong>素材動画URL</strong>（実際に使う映像）</li>
           <li><span class="dot"></span>複製回避素材①URL＋タイムスタンプリスト</li>
           <li><span class="dot"></span>複製回避素材②URL＋タイムスタンプ</li>
-          <li><span class="dot"></span>対応箇所の指定CSVファイル（どの箇所を使うか）</li>
         </ul>
       </div>
       <div class="io-arrow">→</div>
@@ -401,17 +377,17 @@
         <div class="io-header">OUTPUT（出力されるもの）</div>
         <ul>
           <li><span class="dot"></span>完成動画ファイル（MP4）</li>
-          <li><span class="dot"></span>差し替え済み音声（波音リツ）</li>
+          <li><span class="dot"></span>波音リツのナレーション差し替え済み</li>
           <li><span class="dot"></span>複製回避クリップ挿入済み</li>
-          <li><span class="dot"></span>スクリプトテキスト（確認・編集用）</li>
+          <li><span class="dot"></span>マッチング結果レポート（確認用）</li>
         </ul>
       </div>
     </div>
   </section>
 
-  <!-- ─── Pipeline ─── -->
+  <!-- Pipeline -->
   <section>
-    <h2 class="section-title">処理の流れ（パイプライン）</h2>
+    <h2 class="section-title">処理の流れ</h2>
     <div class="pipeline">
 
       <div class="step">
@@ -421,8 +397,8 @@
           <h3>📥 動画ダウンロード
             <span class="auto-badge full">● 完全自動</span>
           </h3>
-          <p>参考動画・素材動画・複製回避素材の全URLから動画ファイルを自動取得。</p>
-          <span class="step-tool">yt-dlp</span>
+          <p>参考動画・素材動画・複製回避素材を全URLから自動取得。</p>
+          <div class="step-tools"><span class="step-tool">yt-dlp</span></div>
         </div>
       </div>
 
@@ -430,22 +406,27 @@
         <div class="step-line"></div>
         <div class="step-num"><div class="step-circle">2</div></div>
         <div class="step-body">
-          <h3>📝 スクリプト文字起こし
+          <h3>📝 両動画を高精度文字起こし
             <span class="auto-badge full">● 完全自動</span>
           </h3>
-          <p>参考動画の音声をAIが自動で文字起こし。ナレーション台本として使用。</p>
-          <span class="step-tool">OpenAI Whisper</span>
+          <p>参考動画・素材動画の両方を、単語レベルの時刻情報付きで文字起こし。</p>
+          <div class="step-tools"><span class="step-tool">OpenAI Whisper</span></div>
         </div>
       </div>
 
       <div class="step">
         <div class="step-line"></div>
         <div class="step-num"><div class="step-circle">3</div></div>
-        <div class="step-body">
-          <h3>✏️ スクリプト確認・編集
-            <span class="auto-badge semi">◐ 半自動（人の確認）</span>
+        <div class="step-body highlight">
+          <h3>🧠 意味マッチング（AIの核心処理）
+            <span class="auto-badge full">● 完全自動</span>
           </h3>
-          <p>自動生成されたスクリプトを確認・修正。図解の挿入箇所にフラグを付ける。完成したらOKを押すだけで次工程へ。</p>
+          <p>テキスト一致ではなく<strong>「意味・文脈の類似度」</strong>で参考動画と素材動画の対応箇所を特定。近い箇所は自動でひとまとまりに統合し、重複・低精度ヒットを除去。</p>
+          <div class="step-tools">
+            <span class="step-tool">OpenAI Embeddings</span>
+            <span class="step-tool">セマンティック類似度</span>
+            <span class="step-tool">重複除去アルゴリズム</span>
+          </div>
         </div>
       </div>
 
@@ -453,12 +434,10 @@
         <div class="step-line"></div>
         <div class="step-num"><div class="step-circle">4</div></div>
         <div class="step-body">
-          <h3>🗣️ 音声合成（波音リツ）
-            <span class="auto-badge full">● 完全自動</span>
+          <h3>👁️ マッチング結果の確認
+            <span class="auto-badge semi">◐ 軽確認（AIが候補提示）</span>
           </h3>
-          <p>スクリプトをVOICEVOX APIに送信して、波音リツのナレーション音声ファイルを自動生成。</p>
-          <span class="step-tool">VOICEVOX API</span>
-          <span class="step-tool">波音リツ（CoeFont）</span>
+          <p>AIが出したタイムスタンプ候補と信頼スコアをリスト表示。目視確認は最小限で、OKを押せば次工程へ。</p>
         </div>
       </div>
 
@@ -466,11 +445,14 @@
         <div class="step-line"></div>
         <div class="step-num"><div class="step-circle">5</div></div>
         <div class="step-body">
-          <h3>✂️ 素材動画カット
+          <h3>🗣️ ナレーション音声合成
             <span class="auto-badge full">● 完全自動</span>
           </h3>
-          <p>指定されたタイムスタンプに従い、素材動画・複製回避素材から該当箇所を自動カット。</p>
-          <span class="step-tool">ffmpeg</span>
+          <p>参考動画のスクリプトをもとに、波音リツの音声を自動生成して差し替え。</p>
+          <div class="step-tools">
+            <span class="step-tool">VOICEVOX（波音リツ）</span>
+            <span class="step-tool">CoeFont API</span>
+          </div>
         </div>
       </div>
 
@@ -478,23 +460,11 @@
         <div class="step-line"></div>
         <div class="step-num"><div class="step-circle">6</div></div>
         <div class="step-body">
-          <h3>🖼️ 図解の差し替え（AIイラスト）
-            <span class="auto-badge semi">◐ 半自動（AIで生成、確認あり）</span>
-          </h3>
-          <p>参考動画の図解シーンを検出し、AI（画像生成）で類似のイラストを生成して差し替え候補として提示。確認後に挿入。</p>
-          <span class="step-tool">DALL-E / Stable Diffusion</span>
-        </div>
-      </div>
-
-      <div class="step">
-        <div class="step-line"></div>
-        <div class="step-num"><div class="step-circle">7</div></div>
-        <div class="step-body">
-          <h3>🔗 動画の結合・組み立て
+          <h3>✂️ クリップカット＆結合
             <span class="auto-badge full">● 完全自動</span>
           </h3>
-          <p>カットしたクリップ → ナレーション音声に差し替え → 複製回避クリップをまとめ直前に挿入 → 最終動画として書き出し。</p>
-          <span class="step-tool">ffmpeg</span>
+          <p>素材動画からマッチ箇所をカット → ナレーション差し替え → 複製回避素材をまとめ直前に挿入 → 最終動画として書き出し。</p>
+          <div class="step-tools"><span class="step-tool">ffmpeg</span></div>
         </div>
       </div>
 
@@ -509,88 +479,55 @@
     </div>
   </section>
 
-  <!-- ─── Automation Summary ─── -->
+  <!-- 自動化割合 -->
   <section>
     <h2 class="section-title">自動化の割合</h2>
     <div class="auto-summary">
       <div class="auto-card full">
         <div class="num">5</div>
         <div class="label">完全自動</div>
-        <div class="sub">ダウンロード・文字起こし<br>音声合成・カット・結合</div>
+        <div class="sub">ダウンロード・文字起こし<br>意味マッチング・音声合成・結合</div>
       </div>
       <div class="auto-card semi">
-        <div class="num">2</div>
-        <div class="label">半自動（確認あり）</div>
-        <div class="sub">スクリプト確認<br>図解の差し替え確認</div>
+        <div class="num">1</div>
+        <div class="label">軽確認あり</div>
+        <div class="sub">AIが候補を提示して<br>OKを押すだけ</div>
       </div>
       <div class="auto-card manual">
-        <div class="num">1</div>
-        <div class="label">初回のみ手動</div>
-        <div class="sub">タイムスタンプCSVの作成<br>（2回目以降は再利用可）</div>
+        <div class="num">0</div>
+        <div class="label">手動タイムスタンプ入力</div>
+        <div class="sub">複製回避素材の<br>タイムスタンプは初回のみ指定</div>
       </div>
     </div>
   </section>
 
-  <!-- ─── Tech ─── -->
+  <!-- Tech -->
   <section>
     <h2 class="section-title">使用技術</h2>
     <div class="tech-grid">
       <div class="tech-item">
         <div class="tech-icon" style="background:#FEE2E2; color:#EF4444;">⬇</div>
-        <div>
-          <h4>yt-dlp</h4>
-          <p>YouTube動画ダウンロード（無料）</p>
-        </div>
+        <div><h4>yt-dlp</h4><p>YouTube動画ダウンロード</p></div>
       </div>
       <div class="tech-item">
         <div class="tech-icon" style="background:#EDE9FE; color:#7C3AED;">🎙</div>
-        <div>
-          <h4>OpenAI Whisper</h4>
-          <p>音声→テキスト文字起こし</p>
-        </div>
+        <div><h4>OpenAI Whisper</h4><p>高精度・タイムスタンプ付き文字起こし</p></div>
+      </div>
+      <div class="tech-item">
+        <div class="tech-icon" style="background:#FEF3C7; color:#D97706;">🧠</div>
+        <div><h4>OpenAI Embeddings</h4><p>意味ベースのマッチング（核心）</p></div>
       </div>
       <div class="tech-item">
         <div class="tech-icon" style="background:#E0F2FE; color:#0284C7;">🗣</div>
-        <div>
-          <h4>VOICEVOX API</h4>
-          <p>波音リツ 音声合成（無料）</p>
-        </div>
+        <div><h4>VOICEVOX / CoeFont</h4><p>波音リツ 音声合成</p></div>
       </div>
       <div class="tech-item">
         <div class="tech-icon" style="background:#F0FDF4; color:#16A34A;">✂</div>
-        <div>
-          <h4>ffmpeg</h4>
-          <p>動画カット・結合・音声差し替え</p>
-        </div>
-      </div>
-      <div class="tech-item">
-        <div class="tech-icon" style="background:#FFF7ED; color:#EA580C;">🖼</div>
-        <div>
-          <h4>DALL-E / SD</h4>
-          <p>図解・イラスト AI生成</p>
-        </div>
+        <div><h4>ffmpeg</h4><p>動画カット・結合・音声差し替え</p></div>
       </div>
       <div class="tech-item">
         <div class="tech-icon" style="background:#F5F3FF; color:#7C3AED;">🐍</div>
-        <div>
-          <h4>Python</h4>
-          <p>全体の処理フロー制御</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- ─── Note ─── -->
-  <section style="padding-top: 0;">
-    <div class="note">
-      <span class="note-icon">⚠️</span>
-      <div>
-        <strong>実装前に確認したい点</strong>
-        <ul style="margin-top: 8px;">
-          <li>素材動画（<code>ohzAXdrovCI</code>）は自社・権利所有コンテンツですか？</li>
-          <li>参考動画からの「同じ構成」は<strong>構成の模倣のみ</strong>で、動画素材自体は使わない認識でよいですか？</li>
-          <li>VOICEVOXはローカルPCにインストールして起動する形でOKですか？（APIはローカルサーバーとして動作します）</li>
-        </ul>
+        <div><h4>Python</h4><p>全体パイプライン制御</p></div>
       </div>
     </div>
   </section>
@@ -598,7 +535,7 @@
 </div>
 
 <footer>
-  動画TTPツール 構想イメージ ／ 作成日：2026年4月
+  動画TTPツール 構想イメージ v2 ／ 2026年4月更新
 </footer>
 
 </body>

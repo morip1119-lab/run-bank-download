@@ -5,6 +5,7 @@ import {
   parseFixCommand,
   parseAvailabilityCommand,
   parseDirectCalendarCommand,
+  parseDirectCalendarDeleteCommand,
   parseReminderCommand,
   parseInvoiceCommand,
   parseDriveSaveCommand,
@@ -20,7 +21,13 @@ import {
   formatDraftMessage,
   applyCorrectionInstruction,
 } from "./draft_service.js";
-import { insertPrimaryCalendarEvent, getFreeSlots, registerDirectCalendarEvent, buildCalendarTemplateUrl } from "./calendar_service.js";
+import {
+  insertPrimaryCalendarEvent,
+  getFreeSlots,
+  registerDirectCalendarEvent,
+  deleteDirectCalendarEvent,
+  buildCalendarTemplateUrl,
+} from "./calendar_service.js";
 import { createInvoice } from "./invoice_service.js";
 import { saveToDrive, resolveCompanyKey, resolveYearMonth, listDriveCompanies } from "./drive_service.js";
 import { parseDateTimeRange, formatRangeJa } from "./datetime_parse.js";
@@ -109,6 +116,13 @@ async function handleGroupMessage(
   const avail = parseAvailabilityCommand(text);
   if (avail) {
     await handleAvailability(client, groupId, avail.period);
+    return;
+  }
+
+  const delCal = parseDirectCalendarDeleteCommand(text);
+  if (delCal) {
+    const result = await deleteDirectCalendarEvent(delCal);
+    await pushText(client, groupId, result.message);
     return;
   }
 
@@ -281,6 +295,13 @@ async function handleDirectMessage(client, event, { text, userId }) {
     return;
   }
 
+  const delCalDm = parseDirectCalendarDeleteCommand(text);
+  if (delCalDm) {
+    const result = await deleteDirectCalendarEvent(delCalDm);
+    await pushText(client, userId, result.message);
+    return;
+  }
+
   const direct = parseDirectCalendarCommand(text);
   if (direct) {
     const result = await registerDirectCalendarEvent(direct);
@@ -409,6 +430,7 @@ async function handleDirectMessage(client, event, { text, userId }) {
       "使い方:",
       "・グループ: 対象メッセージに返信して「下書きを作成する」→ このグループに下書きが出ます",
       "・グループ: 「カレンダー登録する」で Google カレンダーに登録",
+      "・「カレンダー削除して」＋件名＋日時（登録と同じ3行）で予定を削除",
       "・「修正」→ 続けて日時などを送る、または「修正」改行＋内容",
       "",
       "💰 支出管理:",

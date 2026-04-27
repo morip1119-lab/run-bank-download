@@ -8,3 +8,6 @@ misoca_token*.json
 credentials.json
 *.log
 .DS_Store
+
+# Local Netlify folder
+.netlify
