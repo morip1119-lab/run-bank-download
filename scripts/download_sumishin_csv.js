@@ -343,6 +343,63 @@ async function login(page) {
 
   await page.waitForTimeout(2000);
   console.log("[sumishin] ログイン処理完了（現在URL）:", page.url());
+
+  // ── セキュリティ確認ページ対応 ──────────────────────────────────
+  // GitHub Actions 等の新しいIPからログインすると wpl010301N ページ（新端末通知）が表示される
+  // 「確認する」「次へ」「OK」等のボタンを自動クリックしてスキップする
+  await handleSecurityPage(page);
+}
+
+// ── セキュリティ確認ページ処理 ───────────────────────────────────
+// 新しいIPからのログイン時に表示される通知・確認ページを自動スキップする
+// 対象URL: wpl010301N (新端末ログイン通知) など
+
+async function handleSecurityPage(page) {
+  const url = page.url();
+  if (!url.includes("wpl010301") && !url.includes("DI01030")) {
+    return; // 通常ページなら何もしない
+  }
+
+  console.log("[sumishin] セキュリティ確認ページを検出:", url);
+
+  // 「確認する」「次へ」「OK」「同意する」「続ける」などのボタンを探してクリック
+  const clicked = await page.evaluate(() => {
+    const keywords = ["確認する", "次へ", "OK", "同意する", "続ける", "ログインする", "了解", "進む"];
+    const all = Array.from(document.querySelectorAll("a, button, input[type='button'], input[type='submit']"));
+    for (const kw of keywords) {
+      const el = all.find(e => {
+        const t = (e.textContent || e.value || "").trim();
+        return t.includes(kw) && e.offsetParent !== null;
+      });
+      if (el) {
+        el.click();
+        return kw;
+      }
+    }
+    // フォールバック: ページ内の最初の目立つボタン
+    const btn = all.find(e => e.offsetParent !== null && (e.tagName === "BUTTON" || e.getAttribute("role") === "button"));
+    if (btn) {
+      btn.click();
+      return `fallback: ${(btn.textContent || "").trim().slice(0, 20)}`;
+    }
+    return null;
+  });
+
+  if (clicked) {
+    console.log(`[sumishin] セキュリティページ: 「${clicked}」をクリック`);
+    await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
+    await page.waitForTimeout(2000);
+    console.log("[sumishin] セキュリティページ通過後URL:", page.url());
+
+    // まだセキュリティページにいる場合は再試行
+    if (page.url().includes("wpl010301")) {
+      console.log("[sumishin] セキュリティページが続いているため再試行...");
+      await handleSecurityPage(page);
+    }
+  } else {
+    await debugShot(page, "security_page_no_btn");
+    console.log("[sumishin] セキュリティページのボタンが見つかりません（スクリーンショット保存）");
+  }
 }
 
 // ── 対象口座（固定リスト） ────────────────────────────────────────
