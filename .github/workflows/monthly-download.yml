@@ -44,3 +44,12 @@ jobs:
           name: csv-downloads
           path: downloads/
           retention-days: 7
+
+      - name: デバッグスクリーンショットを保存
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: debug-screenshots
+          path: data/
+          retention-days: 7
+          if-no-files-found: ignore

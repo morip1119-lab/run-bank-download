@@ -352,20 +352,47 @@ async function login(page) {
 
 // ── セキュリティ確認ページ処理 ───────────────────────────────────
 // 新しいIPからのログイン時に表示される通知・確認ページを自動スキップする
-// 対象URL: wpl010301N (新端末ログイン通知) など
+//
+// 既知の中間ページURL:
+//   wpl010301N / DI01030100 … 新端末ログイン通知
+//   wpl010101F / DI01010250 … ログイン後確認ページ（お知らせ・注意事項等）
+//
+// 上記以外でも wpl010101 (ログインモジュール) に留まっている場合も対象とする
 
-async function handleSecurityPage(page) {
+function isIntermediatePage(url) {
+  return (
+    url.includes("wpl010301") ||
+    url.includes("DI01030") ||
+    url.includes("DI01010250") ||
+    // ログインモジュール (wpl010101) 内でログイン入力ページ以外に留まっている
+    (url.includes("wpl010101") && !url.includes("DI01010240"))
+  );
+}
+
+async function handleSecurityPage(page, depth = 0) {
+  if (depth > 5) {
+    console.log("[sumishin] セキュリティページ処理の最大試行回数に達しました");
+    return;
+  }
+
   const url = page.url();
-  if (!url.includes("wpl010301") && !url.includes("DI01030")) {
+  if (!isIntermediatePage(url)) {
     return; // 通常ページなら何もしない
   }
 
-  console.log("[sumishin] セキュリティ確認ページを検出:", url);
+  console.log(`[sumishin] 中間ページを検出 (試行${depth + 1}):`, url);
+  await debugShot(page, `security_page_${depth}`);
 
-  // 「確認する」「次へ」「OK」「同意する」「続ける」などのボタンを探してクリック
+  // ページ内のボタン・リンクを全取得してクリック候補テキストを優先順に探す
   const clicked = await page.evaluate(() => {
-    const keywords = ["確認する", "次へ", "OK", "同意する", "続ける", "ログインする", "了解", "進む"];
-    const all = Array.from(document.querySelectorAll("a, button, input[type='button'], input[type='submit']"));
+    const keywords = [
+      "確認する", "次へ", "OK", "同意する", "続ける",
+      "ログインする", "了解", "進む", "ホームへ", "トップへ",
+      "マイページへ", "閉じる", "スキップ", "後で行う",
+    ];
+    const all = Array.from(document.querySelectorAll(
+      "a, button, input[type='button'], input[type='submit'], [role='button']"
+    ));
     for (const kw of keywords) {
       const el = all.find(e => {
         const t = (e.textContent || e.value || "").trim();
@@ -376,29 +403,31 @@ async function handleSecurityPage(page) {
         return kw;
       }
     }
-    // フォールバック: ページ内の最初の目立つボタン
-    const btn = all.find(e => e.offsetParent !== null && (e.tagName === "BUTTON" || e.getAttribute("role") === "button"));
-    if (btn) {
-      btn.click();
-      return `fallback: ${(btn.textContent || "").trim().slice(0, 20)}`;
+    // フォールバック: 表示中の最初のボタン/リンク（ヘッダー除く）
+    const fallback = all.find(e => {
+      const rect = e.getBoundingClientRect();
+      return e.offsetParent !== null && rect.top > 150 && rect.width > 30;
+    });
+    if (fallback) {
+      fallback.click();
+      return `fallback:${(fallback.textContent || fallback.value || "").trim().slice(0, 30)}`;
     }
     return null;
   });
 
   if (clicked) {
-    console.log(`[sumishin] セキュリティページ: 「${clicked}」をクリック`);
+    console.log(`[sumishin] 中間ページ: 「${clicked}」をクリック`);
     await page.waitForLoadState("networkidle", { timeout: 15000 }).catch(() => {});
     await page.waitForTimeout(2000);
-    console.log("[sumishin] セキュリティページ通過後URL:", page.url());
+    console.log("[sumishin] クリック後URL:", page.url());
 
-    // まだセキュリティページにいる場合は再試行
-    if (page.url().includes("wpl010301")) {
-      console.log("[sumishin] セキュリティページが続いているため再試行...");
-      await handleSecurityPage(page);
+    // まだ中間ページにいる場合は再帰的に再試行
+    if (isIntermediatePage(page.url())) {
+      await handleSecurityPage(page, depth + 1);
     }
   } else {
-    await debugShot(page, "security_page_no_btn");
-    console.log("[sumishin] セキュリティページのボタンが見つかりません（スクリーンショット保存）");
+    await debugShot(page, `security_page_no_btn_${depth}`);
+    console.log("[sumishin] 中間ページのボタンが見つかりません（スクリーンショット保存、続行）");
   }
 }
 
@@ -477,6 +506,9 @@ async function navigateToMonthByList(page, targetMonth) {
 async function goToMeisai(page) {
   console.log("[sumishin] 入出金明細ページへ移動...");
 
+  // まず中間ページを通過してから遷移する
+  await handleSecurityPage(page);
+
   const meisaiLink = page
     .locator(
       'a:has-text("入出金明細"), ' +
@@ -494,6 +526,13 @@ async function goToMeisai(page) {
 
   await meisaiLink.click();
   await page.waitForLoadState("networkidle", { timeout: 20000 }).catch(() => {});
+  await page.waitForTimeout(2000);
+
+  // クリック後もまだ中間ページにいる場合は再度通過を試みる
+  if (isIntermediatePage(page.url())) {
+    console.log("[sumishin] 入出金明細リンククリック後も中間ページが残存。再度スキップ試行...");
+    await handleSecurityPage(page);
+  }
   await page.waitForTimeout(2000);
   console.log("[sumishin] 入出金明細ページ:", page.url());
 }
